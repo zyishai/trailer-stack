@@ -1,4 +1,5 @@
-import { cssBundleHref } from "@remix-run/css-bundle";
+import customFontStyles from "~/styles/fonts.css";
+import globalStyles from "~/styles/styles.css";
 import type { LinksFunction } from "@remix-run/node";
 import {
   Links,
@@ -10,7 +11,10 @@ import {
 } from "@remix-run/react";
 
 export const links: LinksFunction = () => [
-  ...(cssBundleHref ? [{ rel: "stylesheet", href: cssBundleHref }] : []),
+  { rel: "preload", href: customFontStyles, as: "style" },
+  { rel: "preload", href: globalStyles, as: "style" },
+  { rel: "stylesheet", href: customFontStyles },
+  { rel: "stylesheet", href: globalStyles },
 ];
 
 export default function App() {
