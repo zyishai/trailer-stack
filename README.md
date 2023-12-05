@@ -26,6 +26,7 @@ Note that this stack is opinionated to my needs; however, you can very easily re
 - Code formatting with [Prettier](https://prettier.io)
 - Linting with [ESLint](https://eslint.org) -->
 - Styling with [Tailwind](https://tailwindcss.com/) and [Shadcn UI](https://ui.shadcn.com).
+- Custom fonts: `Inter` and `InterDisplay`.
 - Static Types with [TypeScript](https://typescriptlang.org)
 
 ## Planned Features 🛠️
