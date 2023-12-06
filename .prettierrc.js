@@ -18,14 +18,6 @@ export default {
 	tabWidth: 2,
 	trailingComma: 'all',
 	useTabs: false,
-	overrides: [
-		{
-			files: ['**/*.json'],
-			options: {
-				useTabs: false,
-			},
-		},
-	],
 
   tailwindFunctions: ['clsx', 'cva', 'cn'],
   plugins: ['prettier-plugin-tailwindcss']

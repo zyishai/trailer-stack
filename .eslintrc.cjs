@@ -9,6 +9,7 @@ module.exports = {
     '/node_modules',
     '/build',
     '/public/build',
-    '/public/fonts'
+    '/public/fonts',
+    'package*.json'
   ]
 };

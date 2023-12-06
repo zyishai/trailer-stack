@@ -9,7 +9,8 @@
     "start": "remix-serve ./build/index.js",
     "typecheck": "tsc",
     "lint": "eslint --cache .",
-    "force-format": "prettier --write ."
+    "force-format": "prettier --write .",
+    "prepare": "is-ci || husky install"
   },
   "dependencies": {
     "@remix-run/css-bundle": "^2.3.1",
@@ -34,6 +35,8 @@
     "eslint": "^8.38.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.0.1",
+    "husky": "^8.0.0",
+    "is-ci": "^3.0.1",
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.5.9",
     "tailwindcss": "^3.3.6",
