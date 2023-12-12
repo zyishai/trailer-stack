@@ -21,7 +21,7 @@ export const meta: MetaFunction = () => {
 
 export default function IndexPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-primary">
+    <div className="flex min-h-screen flex-col">
       <main className="container grid max-w-full flex-1 content-start justify-items-center gap-10 pt-10 sm:pt-16 lg:max-w-3xl">
         <img
           src="/assets/logo-wide.svg"
@@ -31,7 +31,7 @@ export default function IndexPage() {
           className="w-auto md:h-48"
         />
         <div className="text-center">
-          <h1 className="text-primary-foreground sm:text-6xl">
+          <h1 className="sm:text-6xl">
             Trailer
             <span className="font-light"> Stack</span>
           </h1>
@@ -42,7 +42,7 @@ export default function IndexPage() {
         <Code fullWidth>
           $ npx create-remix@latest --template zyishai/trailer-stack
         </Code>
-        <Button variant="secondary" asChild>
+        <Button variant="outline" asChild>
           <Link to="https://github.com/zyishai/trailer-stack/" target="_blank">
             Learn More
           </Link>

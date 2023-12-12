@@ -1,6 +1,10 @@
 import customFontStyles from "~/styles/fonts.css";
 import globalStyles from "~/styles/styles.css";
-import type { LinksFunction } from "@remix-run/node";
+import {
+  json,
+  type LinksFunction,
+  type LoaderFunctionArgs,
+} from "@remix-run/node";
 import {
   Links,
   LiveReload,
@@ -11,6 +15,9 @@ import {
 } from "@remix-run/react";
 import { Toaster } from "./components/ui/toaster";
 import { TooltipProvider } from "./components/ui/tooltip";
+import { getTheme } from "./lib/theme.server";
+import { useTheme } from "./lib/theme";
+import { ClientHintsCheck, getClientHints } from "./lib/client-hints";
 
 export const links: LinksFunction = () => [
   { rel: "preload", href: customFontStyles, as: "style" },
@@ -41,10 +48,22 @@ export const links: LinksFunction = () => [
   },
 ];
 
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  return json({
+    userPrefs: {
+      theme: await getTheme(request),
+    },
+    clientHints: getClientHints(request),
+  });
+};
+
 export default function App() {
+  const theme = useTheme();
+
   return (
-    <html lang="en">
+    <html lang="en" className={`${theme}`}>
       <head>
+        <ClientHintsCheck />
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
