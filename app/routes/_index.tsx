@@ -1,7 +1,7 @@
 import type { MetaFunction } from "@remix-run/node";
 import { Link } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
-import { Code } from "~/components/typography/code";
+import { Code } from "~/components/code";
 import {
   FacebookIcon,
   GithubIcon,

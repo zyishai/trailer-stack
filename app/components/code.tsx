@@ -2,8 +2,8 @@ import React, { useRef } from "react";
 import { type VariantProps, cva } from "class-variance-authority";
 import { Copy } from "lucide-react";
 import copy from "copy-to-clipboard";
-import { useToast } from "../ui/use-toast";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { useToast } from "./ui/use-toast";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 const codeVariants = cva("rounded-lg bg-black px-3 py-2 sm:px-5 sm:py-2", {
   variants: {
