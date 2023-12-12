@@ -27,9 +27,12 @@ Note that this stack is opinionated to my needs; however, you can very easily re
 -->
 - Styling with [Tailwind](https://tailwindcss.com/) and [Shadcn UI](https://ui.shadcn.com)
 - Custom fonts: `Inter` and `InterDisplay`
+- Custom components: CodeWithCopy, ThemeSelector, and more
+- Dark mode support
+- Runtime schema validation using [Zod](https://zod.dev) and [Conform](https://conform.guide)
+- Flat routes provided by [Remix Flat Routes](https://github.com/kiliman/remix-flat-routes)
 - Code formatting with [Prettier](https://prettier.io) and [EditorConfig](https://editorconfig.org)
-- Linting with [ESLint](https://eslint.org)
-- Git hooks with [Husky](https://www.npmjs.com/package/husky)
+- Auto linting before commit using [ESLint](https://eslint.org) and [Husky](https://www.npmjs.com/package/husky)
 - Static Types with [TypeScript](https://typescriptlang.org)
 
 ## Planned Features 🛠️
