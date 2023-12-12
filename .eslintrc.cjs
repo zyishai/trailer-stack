@@ -11,6 +11,7 @@ module.exports = {
     '/build',
     '/public/build',
     '/public/fonts',
-    'package*.json'
+    'package*.json',
+    'components.json'
   ]
 };
