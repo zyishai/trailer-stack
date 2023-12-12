@@ -1,7 +1,7 @@
 import type { MetaFunction } from "@remix-run/node";
 import { Link } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
-import { Code } from "~/components/code";
+import { CodeWithCopy } from "~/components/code-with-copy";
 import {
   FacebookIcon,
   GithubIcon,
@@ -31,17 +31,16 @@ export default function IndexPage() {
           className="w-auto md:h-48"
         />
         <div className="text-center">
-          <h1 className="sm:text-6xl">
-            Trailer
-            <span className="font-light"> Stack</span>
+          <h1 className="tracking-normal text-slate-900 dark:text-slate-200 sm:text-6xl">
+            Trailer Stack
           </h1>
-          <div className="lead bg-gradient-to-r from-indigo-500 to-indigo-200 bg-clip-text font-semibold text-transparent">
+          <div className="lead bg-gradient-to-r from-slate-300 to-slate-700 bg-clip-text font-semibold text-transparent dark:from-slate-600 dark:to-slate-300">
             Create . Build . Deploy
           </div>
         </div>
-        <Code fullWidth>
+        <CodeWithCopy>
           $ npx create-remix@latest --template zyishai/trailer-stack
-        </Code>
+        </CodeWithCopy>
         <Button variant="outline" asChild>
           <Link to="https://github.com/zyishai/trailer-stack/" target="_blank">
             Learn More

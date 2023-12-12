@@ -7,7 +7,7 @@
     --font-sans: Inter;
     --font-display: InterDisplay;
 
-    --background: 0 0% 100%;
+    --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -100,6 +100,12 @@
   }
   .muted {
     @apply text-sm text-muted-foreground;
+  }
+  code {
+    @apply px-6 py-3 rounded-md whitespace-nowrap overflow-x-auto bg-black text-white text-sm leading-6 max-w-full dark:bg-slate-800;
+  }
+  code[data-print=true] {
+    @apply px-5 whitespace-normal overflow-hidden;
   }
   .grid-1 {
     @apply col-start-1 row-start-1;
