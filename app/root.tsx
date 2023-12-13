@@ -13,11 +13,12 @@ import {
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
-import { Toaster } from "./components/ui/toaster";
-import { TooltipProvider } from "./components/ui/tooltip";
 import { getTheme } from "./lib/theme.server";
 import { useTheme } from "./lib/theme";
 import { ClientHintsCheck, getClientHints } from "./lib/client-hints";
+import { Toaster } from "sonner";
+import { useLayoutInfo } from "./lib/layout-info";
+import { cn } from "./lib/misc";
 
 export const links: LinksFunction = () => [
   { rel: "preload", href: customFontStyles, as: "style" },
@@ -59,6 +60,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function App() {
   const theme = useTheme();
+  const { backgroundClassName, layout: Layout, layoutProps } = useLayoutInfo();
 
   return (
     <html lang="en" className={`${theme}`}>
@@ -69,11 +71,11 @@ export default function App() {
         <Meta />
         <Links />
       </head>
-      <body>
-        <TooltipProvider>
+      <body className={cn(backgroundClassName)}>
+        <Layout {...layoutProps}>
           <Outlet />
-        </TooltipProvider>
-        <Toaster />
+        </Layout>
+        <Toaster closeButton theme={theme} duration={1500} />
         <ScrollRestoration />
         <Scripts />
         <LiveReload />

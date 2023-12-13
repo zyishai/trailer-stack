@@ -11,8 +11,8 @@ import { capitalize } from "~/lib/misc";
 import { THEMES, useTheme } from "~/lib/theme";
 
 const themeIcons = {
-  light: () => <SunIcon />,
-  dark: () => <MoonIcon />,
+  light: () => <SunIcon strokeWidth={1} size={22} aria-hidden="true" />,
+  dark: () => <MoonIcon strokeWidth={1} size={22} aria-hidden="true" />,
 };
 
 const ThemeSelector = () => {
@@ -24,6 +24,7 @@ const ThemeSelector = () => {
       <DropdownMenuTrigger asChild>
         <Button size="icon" variant="outline">
           {themeIcons[theme]?.()}
+          <span className="sr-only">{theme}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
