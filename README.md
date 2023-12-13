@@ -32,7 +32,7 @@ Note that this stack is opinionated to my needs; however, you can very easily re
 - Runtime schema validation using [Zod](https://zod.dev) and [Conform](https://conform.guide)
 - Flat routes provided by [Remix Flat Routes](https://github.com/kiliman/remix-flat-routes)
 - Code formatting with [Prettier](https://prettier.io) and [EditorConfig](https://editorconfig.org)
-- Auto linting before commit using [ESLint](https://eslint.org) and [Husky](https://www.npmjs.com/package/husky)
+- Auto lint before commits using [ESLint](https://eslint.org) and [Husky](https://www.npmjs.com/package/husky)
 - Static Types with [TypeScript](https://typescriptlang.org)
 
 ## Planned Features 🛠️
