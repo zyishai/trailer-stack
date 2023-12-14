@@ -6,6 +6,8 @@ import {
   YoutubeIcon,
 } from "lucide-react";
 import { ThemeSelector } from "./theme-selector";
+import { CookiesNotice } from "./cookies-notice";
+import { useCookieConsent } from "~/lib/cookie-consent";
 
 type LayoutProps = {
   showHeader?: boolean;
@@ -21,6 +23,8 @@ export const DefaultLayout = ({
   logo = { href: "/assets/logo.svg", alt: "Trailer Logo" },
   children,
 }: React.PropsWithChildren<LayoutProps>) => {
+  const cookieConsent = useCookieConsent();
+
   return (
     <div className="flex h-screen flex-col">
       {showHeader ? (
@@ -39,6 +43,10 @@ export const DefaultLayout = ({
       ) : null}
 
       <div className="flex-1 overflow-hidden">{children}</div>
+
+      {cookieConsent.showCookieNotice ? (
+        <CookiesNotice className="fixed bottom-14 right-6 max-w-3xl self-end" />
+      ) : null}
 
       {showFooter ? (
         <footer className="px-8 py-6 sm:py-4">

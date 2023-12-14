@@ -19,6 +19,7 @@ import { ClientHintsCheck, getClientHints } from "./lib/client-hints";
 import { Toaster } from "sonner";
 import { useLayoutInfo } from "./lib/layout-info";
 import { cn } from "./lib/misc";
+import { getCookieConsent } from "./lib/cookie-consent";
 
 export const links: LinksFunction = () => [
   { rel: "preload", href: customFontStyles, as: "style" },
@@ -50,11 +51,13 @@ export const links: LinksFunction = () => [
 ];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const cookieConsent = getCookieConsent(request);
   return json({
     userPrefs: {
       theme: await getTheme(request),
     },
     clientHints: getClientHints(request),
+    showCookieNotice: cookieConsent === null,
   });
 };
 
