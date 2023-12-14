@@ -27,6 +27,7 @@ Note that this stack is opinionated to my needs; however, you can very easily re
 -->
 - Styling with [Tailwind](https://tailwindcss.com/) and [Shadcn UI](https://ui.shadcn.com)
 - Custom fonts: `Inter` and `InterDisplay`
+- Global styles preset
 - Custom components: CodeWithCopy, ThemeSelector, and more
 - Dark mode support
 - Runtime schema validation using [Zod](https://zod.dev) and [Conform](https://conform.guide)

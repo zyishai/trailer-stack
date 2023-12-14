@@ -107,6 +107,9 @@
   code[data-print=true] {
     @apply px-5 whitespace-normal overflow-hidden;
   }
+  kbd {
+    @apply leading-normal px-2 border border-pink-200 bg-pink-50 rounded-sm shadow-sm;
+  }
   .grid-1 {
     @apply col-start-1 row-start-1;
   }
