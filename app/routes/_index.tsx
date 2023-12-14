@@ -2,6 +2,7 @@ import type { MetaFunction } from "@remix-run/node";
 import { Link } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import { CodeWithCopy } from "~/components/code-with-copy";
+import { MouseIcon } from "lucide-react";
 
 export const meta: MetaFunction = () => {
   return [
@@ -13,32 +14,90 @@ export const meta: MetaFunction = () => {
   ];
 };
 
+export const handle = () => ({ layoutProps: { logo: null /* hide logo */ } });
+
 export default function IndexPage() {
   return (
-    <main className="container grid max-w-full content-start justify-items-center gap-10 pt-10 sm:pt-16 lg:max-w-3xl">
-      <img
-        src="/assets/logo-wide.svg"
-        alt="Trailer logo wide"
-        width="590"
-        height="144"
-        className="w-auto md:h-48"
-      />
-      <div className="text-center">
-        <h1 className="tracking-normal text-slate-900 dark:text-slate-200 sm:text-6xl">
-          Trailer Stack
-        </h1>
-        <div className="lead bg-gradient-to-r from-slate-300 to-slate-700 bg-clip-text font-semibold text-transparent dark:from-slate-600 dark:to-slate-300">
-          Create . Build . Deploy
+    <main className="h-full snap-y snap-mandatory overflow-auto">
+      <section className="relative -mt-20 mb-20 grid h-full snap-center place-content-center justify-items-center gap-4 px-4">
+        <img src="/assets/logo-wide.svg" alt="Trailer Stack" className="h-28" />
+        <div className="flex gap-3 text-xl font-semibold">
+          <span className="text-gray-500 dark:text-gray-500">Create</span>
+          <span className="">.</span>
+          <span className="text-gray-600 dark:text-gray-400">Build</span>
+          <span className="">.</span>
+          <span className="text-gray-800 dark:text-gray-300">Deploy</span>
         </div>
+        <div className="absolute inset-x-0 -bottom-20 flex animate-bounce flex-col items-center gap-1 text-slate-400">
+          <MouseIcon />
+          <span className="small">Scroll down</span>
+        </div>
+      </section>
+
+      <section className="grid h-full snap-center place-content-center justify-items-center gap-12 px-4">
+        <h1>Quick Start</h1>
+        <div className="grid gap-4 text-center">
+          <span className="lead">
+            Run the following command in your terminal:
+          </span>
+          <CodeWithCopy>
+            $ npx create-remix@latest --template zyishai/trailer-stack
+          </CodeWithCopy>
+        </div>
+        <Button variant="outline" asChild>
+          <Link to="https://github.com/zyishai/trailer-stack/" target="_blank">
+            Learn More
+          </Link>
+        </Button>
+      </section>
+
+      <div className="relative -z-10 opacity-20">
+        <div
+          className="fixed -left-12 bottom-0 -z-10 h-80 w-64 scale-75 md:scale-100"
+          style={{
+            backgroundImage: "url(/assets/puzzle-1.svg)",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "contain",
+            backgroundPosition: "center bottom",
+          }}
+        ></div>
+        <div
+          className="fixed right-20 top-0 -z-10 hidden h-80 w-64 md:block"
+          style={{
+            backgroundImage: "url(/assets/puzzle-2.svg)",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "contain",
+            backgroundPosition: "center bottom",
+          }}
+        ></div>
+        <div
+          className="fixed bottom-28 right-8 -z-10 hidden h-80 w-64 scale-75 sm:block md:right-56 md:scale-100"
+          style={{
+            backgroundImage: "url(/assets/puzzle-4.svg)",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "contain",
+            backgroundPosition: "center bottom",
+          }}
+        ></div>
+        <div
+          className="fixed -left-8 -top-4 -z-10 h-80 w-64 scale-75"
+          style={{
+            backgroundImage: "url(/assets/puzzle-3.svg)",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "contain",
+            backgroundPosition: "center bottom",
+          }}
+        ></div>
+        <div
+          className="fixed -top-36 left-80 -z-10 h-80 w-64 scale-[.45]"
+          style={{
+            backgroundImage: "url(/assets/puzzle-5.svg)",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "contain",
+            backgroundPosition: "center bottom",
+          }}
+        ></div>
       </div>
-      <CodeWithCopy>
-        $ npx create-remix@latest --template zyishai/trailer-stack
-      </CodeWithCopy>
-      <Button variant="outline" asChild>
-        <Link to="https://github.com/zyishai/trailer-stack/" target="_blank">
-          Learn More
-        </Link>
-      </Button>
     </main>
   );
 }

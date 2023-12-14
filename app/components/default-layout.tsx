@@ -10,10 +10,15 @@ import { ThemeSelector } from "./theme-selector";
 type LayoutProps = {
   showHeader?: boolean;
   showFooter?: boolean;
+  logo?: {
+    href: string;
+    alt?: string;
+  };
 };
 export const DefaultLayout = ({
   showHeader = true,
   showFooter = true,
+  logo = { href: "/assets/logo.svg", alt: "Trailer Logo" },
   children,
 }: React.PropsWithChildren<LayoutProps>) => {
   return (
@@ -21,20 +26,14 @@ export const DefaultLayout = ({
       {showHeader ? (
         <header className="px-8 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/">
-              <img src="/assets/logo.svg" alt="Trailer Logo" className="h-9" />
-            </Link>
+            {logo ? (
+              <Link to="/">
+                <img src={logo.href} alt={logo.alt} className="h-9" />
+              </Link>
+            ) : (
+              <div></div>
+            )}
             <ThemeSelector />
-            {/* <nav role="navigation">
-            <ul className="flex items-center gap-4">
-              <li>
-                <Link to='/contact' className="muted hover:text-black">Contact</Link>
-              </li>
-              <li>
-                <Link to='/about' className="muted hover:text-black">About</Link>
-              </li>
-            </ul>
-          </nav> */}
           </div>
         </header>
       ) : null}
@@ -42,8 +41,8 @@ export const DefaultLayout = ({
       <div className="flex-1 overflow-hidden">{children}</div>
 
       {showFooter ? (
-        <footer className="px-8 py-4">
-          <div className="flex items-center justify-between">
+        <footer className="px-8 py-6 sm:py-4">
+          <div className="flex flex-col items-center justify-between sm:flex-row">
             <p className="muted">
               &copy; {new Date().getFullYear()} Trailer Stack
             </p>
@@ -57,7 +56,7 @@ export const DefaultLayout = ({
               >
                 <span className="sr-only">Github</span>
                 <GithubIcon
-                  className="h-3 w-3 sm:h-5 sm:w-5"
+                  className="h-4 w-4 sm:h-5 sm:w-5"
                   strokeWidth={1}
                   aria-hidden="true"
                 />
@@ -70,7 +69,7 @@ export const DefaultLayout = ({
               >
                 <span className="sr-only">X (Twitter)</span>
                 <TwitterIcon
-                  className="h-3 w-3 sm:h-5 sm:w-5"
+                  className="h-4 w-4 sm:h-5 sm:w-5"
                   strokeWidth={1}
                   aria-hidden="true"
                 />
@@ -83,7 +82,7 @@ export const DefaultLayout = ({
               >
                 <span className="sr-only">Facebook</span>
                 <FacebookIcon
-                  className="h-3 w-3 sm:h-5 sm:w-5"
+                  className="h-4 w-4 sm:h-5 sm:w-5"
                   strokeWidth={1}
                   aria-hidden="true"
                 />
@@ -96,7 +95,7 @@ export const DefaultLayout = ({
               >
                 <span className="sr-only">Youtube</span>
                 <YoutubeIcon
-                  className="h-3 w-3 sm:h-5 sm:w-5"
+                  className="h-4 w-4 sm:h-5 sm:w-5"
                   strokeWidth={1}
                   aria-hidden="true"
                 />
