@@ -31,6 +31,7 @@ Note that this stack is opinionated to my needs; however, you can very easily re
 - Dark mode support
 - Runtime schema validation using [Zod](https://zod.dev) and [Conform](https://conform.guide)
 - Flat routes provided by [Remix Flat Routes](https://github.com/kiliman/remix-flat-routes)
+- SEO features: auto sitemap.xml generation and robots.txt routes.
 - Code formatting with [Prettier](https://prettier.io) and [EditorConfig](https://editorconfig.org)
 - Auto lint before commits using [ESLint](https://eslint.org) and [Husky](https://www.npmjs.com/package/husky)
 - Static Types with [TypeScript](https://typescriptlang.org)

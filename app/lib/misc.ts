@@ -8,3 +8,14 @@ export function cn(...inputs: ClassValue[]) {
 export function capitalize(word: string) {
   return word.charAt(0).toUpperCase() + word.slice(1);
 }
+
+export function getDomain(request: Request) {
+  const host =
+    request.headers.get("x-forwarded-for") ||
+    request.headers.get("host") ||
+    new URL(request.url).host;
+  const protocol =
+    new URL(request.url).protocol ||
+    (host.includes("localhost") ? "http" : "https");
+  return `${protocol}://${host}`;
+}
