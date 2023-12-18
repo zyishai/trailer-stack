@@ -12,8 +12,10 @@ import { RemixServer } from "@remix-run/react";
 import isbot from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 import { preloadRouteAssets } from "remix-utils/preload-route-assets";
+import { validateEnvironmentVariables } from "~/lib/env.server";
 
 const ABORT_DELAY = 5_000;
+validateEnvironmentVariables();
 
 export default function handleRequest(
   request: Request,
