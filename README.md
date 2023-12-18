@@ -1,6 +1,4 @@
-# The Trailer Stack
-
-![The Trailer Stack]()
+<img src="./public/assets/logo-wide.svg" alt="Trailer logo" style="display: block; margin-inline: auto; margin-bottom: 25px" />
 
 ```sh
 npx create-remix@latest --template zyishai/trailer-stack
@@ -8,9 +6,9 @@ npx create-remix@latest --template zyishai/trailer-stack
 
 ---
 
-The Trailer Stack is a **quick and lightweight** Remix stack. The base build weighs only 40kB!  
+The Trailer Stack is a **quick and lightweight** Remix stack.
 It uses a combination of very minimal setup and optional add-ons that can be installed and configured during initialization.  
-Note that this stack is opinionated to my needs; however, you can very easily remove/replace different parts that you don't need/want.
+This stack is heavily influenced by the [Epic Stack](https://github.com/epicweb-dev/epic-stack).
 
 ## What's in the stack 🚀
 
@@ -37,8 +35,8 @@ Note that this stack is opinionated to my needs; however, you can very easily re
 - Auto lint before commits using [ESLint](https://eslint.org) and [Husky](https://www.npmjs.com/package/husky)
 - Static Types with [TypeScript](https://typescriptlang.org)
 
-## Planned Features 🛠️
-- todo
+<!-- ## Planned Features 🛠️
+- todo -->
 
 ## Contributing 🤝
 Found a bug? Want to suggest a feature? You can [report a bug](), [recommend a feature]() or fork this repository and [open a pull-request](). Just make sure you follow the [Contribution Guide]().
