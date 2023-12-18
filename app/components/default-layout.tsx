@@ -45,7 +45,7 @@ export const DefaultLayout = ({
       <div className="flex-1 overflow-hidden">{children}</div>
 
       {cookieConsent.showCookieNotice ? (
-        <CookiesNotice className="fixed bottom-14 right-6 max-w-3xl self-end" />
+        <CookiesNotice className="fixed bottom-0 max-w-full self-end sm:bottom-14 md:right-6 md:max-w-3xl" />
       ) : null}
 
       {showFooter ? (
