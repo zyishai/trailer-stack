@@ -11,6 +11,7 @@ import { createReadableStreamFromReadable } from "@remix-run/node";
 import { RemixServer } from "@remix-run/react";
 import isbot from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
+import { preloadRouteAssets } from "remix-utils/preload-route-assets";
 
 const ABORT_DELAY = 5_000;
 
@@ -21,6 +22,7 @@ export default function handleRequest(
   remixContext: EntryContext,
   loadContext: AppLoadContext,
 ) {
+  preloadRouteAssets(remixContext, responseHeaders);
   return isbot(request.headers.get("user-agent"))
     ? handleBotRequest(
         request,
