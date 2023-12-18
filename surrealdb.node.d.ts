@@ -1,9 +1,12 @@
 /**
  * The is a temporary file until `surrealdb.node` version 0.4.0 will be published to NPM.
  * The definition of the `Surreal` class were mostly copied from the Github source.
- * There is one change I made which is the type `Binding` used in the `query` method. Originally the type
+ * 
+ * There are some minor changes I made:
+ * - The type `Binding` used in the `query` method. Originally the type
  * of `bindings` was `Record<string, unknown>` and I replaced it with a strong type that infer the binding
  * names from the query string.
+ * - Strong typed `create`, `update`, and `merge` methods.
  * 
  * @link https://github.com/surrealdb/surrealdb.node/blob/main/index.d.ts
  */
@@ -36,16 +39,17 @@ declare namespace Surreal {
     signin(credentials: { username: string; password: string } | { namespace: string; username: string; password: string } | { namespace: string; database: string; username: string; password: string } | { namespace: string; database: string; scope: string; [k: string]: unknown }): Promise<string>
     invalidate(): Promise<void>
     authenticate(token: string): Promise<boolean>
-    query<T extends string>(sql: T, bindings?: Bindings<T>): Promise<unknown[]>
-    select(resource: string): Promise<{ id: string; [k: string]: unknown }[]>
-    create(resource: string, data?: Record<string, unknown>): Promise<{ id: string; [k: string]: unknown }[]>
-    update(resource: string, data?: Record<string, unknown>): Promise<{ id: string; [k: string]: unknown }[]>
-    merge(resource: string, data: Record<string, unknown>): Promise<{ id: string; [k: string]: unknown }[]>
-    patch(resource: string, data: unknown[]): Promise<unknown[]>
-    delete(resource: string): Promise<{ id: string; [k: string]: unknown }[]>
+    query<Model = unknown, QueryStatement extends string = ''>(sql: QueryStatement, bindings?: Bindings<QueryStatement>): Promise<Model[]>
+    select<Data extends Record<string, unknown>>(resource: string): Promise<({ id: string } & Data)[]>
+    create<Data extends Record<string, unknown>>(resource: string, data?: Data): Promise<({ id: string } & Data)[]>
+    update<Data extends Record<string, unknown>>(resource: string, data?: Data): Promise<({ id: string } & Data)[]>
+    merge<Data extends Record<string, unknown>>(resource: string, data: Partial<Exclude<Data, 'id'>>): Promise<({ id: string } & Data)[]>
+    patch(resource: string, data: unknown[]): Promise<unknown[]> // TODO
+    delete<Data extends Record<string, unknown>>(resource: string): Promise<({ id: string } & Data)[]>
     version(): Promise<string>
     health(): Promise<void>
   }
+
 }
 
 declare module 'surrealdb.node' {
