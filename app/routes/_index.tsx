@@ -14,7 +14,7 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-export const handle = () => ({ layoutProps: { logo: null /* hide logo */ } });
+export const handle = () => ({ logo: null /* hide logo */ });
 
 export default function IndexPage() {
   return (

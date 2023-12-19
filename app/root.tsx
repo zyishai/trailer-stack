@@ -20,6 +20,7 @@ import { Toaster } from "sonner";
 import { useLayoutInfo } from "./lib/layout-info";
 import { cn } from "./lib/misc";
 import { getCookieConsent } from "./lib/cookie-consent";
+import { RootLayout } from "./components/root-layout";
 
 export const links: LinksFunction = () => [
   { rel: "preload", href: customFontStyles, as: "style" },
@@ -63,7 +64,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function App() {
   const theme = useTheme();
-  const { backgroundClassName, layout: Layout, layoutProps } = useLayoutInfo();
+  const { backgroundClassName } = useLayoutInfo();
 
   return (
     <html lang="en" className={`${theme}`}>
@@ -75,9 +76,9 @@ export default function App() {
         <Links />
       </head>
       <body className={cn(backgroundClassName)}>
-        <Layout {...layoutProps}>
+        <RootLayout>
           <Outlet />
-        </Layout>
+        </RootLayout>
         <Toaster closeButton theme={theme} duration={1500} />
         <ScrollRestoration />
         <Scripts />

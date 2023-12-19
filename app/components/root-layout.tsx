@@ -5,9 +5,10 @@ import {
   TwitterIcon,
   YoutubeIcon,
 } from "lucide-react";
-import { ThemeSelector } from "./theme-selector";
-import { CookiesNotice } from "./cookies-notice";
+import { ThemeSelector } from "~/components/theme-selector";
+import { CookiesNotice } from "~/components/cookies-notice";
 import { useCookieConsent } from "~/lib/cookie-consent";
+import { useLayoutInfo } from "~/lib/layout-info";
 
 type LayoutProps = {
   showHeader?: boolean;
@@ -17,12 +18,15 @@ type LayoutProps = {
     alt?: string;
   };
 };
-export const DefaultLayout = ({
-  showHeader = true,
-  showFooter = true,
-  logo = { href: "/assets/logo.svg", alt: "Trailer Logo" },
-  children,
-}: React.PropsWithChildren<LayoutProps>) => {
+export function RootLayout({ children }: React.PropsWithChildren) {
+  const layoutInfo = useLayoutInfo<LayoutProps>();
+  const layoutProps: LayoutProps = {
+    showHeader: true,
+    showFooter: true,
+    logo: { href: "/assets/logo.svg", alt: "Trailer Logo" },
+    ...layoutInfo,
+  };
+  const { showHeader, showFooter, logo } = layoutProps;
   const cookieConsent = useCookieConsent();
 
   return (
@@ -114,4 +118,4 @@ export const DefaultLayout = ({
       ) : null}
     </div>
   );
-};
+}
