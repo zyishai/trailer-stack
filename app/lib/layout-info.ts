@@ -1,44 +1,26 @@
 import { useMatches } from "@remix-run/react";
 
-export interface LayoutInfo {
-  backgroundClassName: string;
-}
-// export interface LayoutInfoHandler<T = unknown> {
-//   (prevInfo: LayoutInfo): LayoutInfo & T;
-// }
-
-const defaultLayoutInfo: Readonly<LayoutInfo> = {
-  backgroundClassName: "bg-background",
-};
-
-// export function isLayoutInfoHandler<T>(fn: unknown): fn is LayoutInfoHandler<T> {
-//   if (!(typeof fn === "function")) {
-//     return false;
-//   }
-//   const result = fn();
-//   if (
-//     Object.keys(result).some(key =>
-//       Object.keys(defaultLayoutInfo).includes(key),
-//     )
-//   ) {
-//     return true;
-//   }
-
-//   return false;
-// }
-
-export function useLayoutInfo<T>(): LayoutInfo & T {
+export function useLayoutInfo(): Record<string, any> {
   const matches = useMatches();
-  let layoutInfo = matches.reduce(
-    (info, match) => {
-      if (typeof match.handle === "function") {
-        const matchInfo = match.handle(info);
+  let layoutInfo = matches.reduce((info, match) => {
+    let matchInfo;
 
-        return { ...info, ...matchInfo }; // override
-      }
+    if (typeof match.handle === "function") {
+      matchInfo = match.handle(info);
+    } else {
+      matchInfo = match.handle;
+    }
+
+    if (
+      typeof matchInfo === "object" &&
+      matchInfo !== null &&
+      "layoutInfo" in matchInfo
+    ) {
+      return { ...info, ...matchInfo.layoutInfo }; // override
+    } else {
       return info;
-    },
-    defaultLayoutInfo as LayoutInfo & T,
-  );
+    }
+  }, {});
+
   return layoutInfo;
 }

@@ -19,7 +19,7 @@ type LayoutProps = {
   };
 };
 export function RootLayout({ children }: React.PropsWithChildren) {
-  const layoutInfo = useLayoutInfo<LayoutProps>();
+  const layoutInfo = useLayoutInfo();
   const layoutProps: LayoutProps = {
     showHeader: true,
     showFooter: true,
