@@ -23,6 +23,8 @@ This stack is heavily influenced by the [Epic Stack](https://github.com/epicweb-
 - Local third party request mocking with [MSW](https://mswjs.io)
 - Unit testing with [Vitest](https://vitest.dev) and [Testing Library](https://testing-library.com)
 -->
+- Production-ready [SurrealDB Database](https://surrealdb.com)
+- Sending emails with [nodemailer](https://nodemailer.com) and responsive live preview of email templates!
 - Styling with [Tailwind](https://tailwindcss.com/) and [Shadcn UI](https://ui.shadcn.com)
 - Custom fonts: `Inter` and `InterDisplay`
 - Global styles preset
@@ -30,7 +32,7 @@ This stack is heavily influenced by the [Epic Stack](https://github.com/epicweb-
 - Dark mode support
 - Runtime schema validation using [Zod](https://zod.dev) and [Conform](https://conform.guide)
 - Flat routes provided by [Remix Flat Routes](https://github.com/kiliman/remix-flat-routes)
-- SEO features: auto sitemap.xml generation and robots.txt routes.
+- SEO features: auto sitemap.xml generation and robots.txt routes
 - Code formatting with [Prettier](https://prettier.io) and [EditorConfig](https://editorconfig.org)
 - Auto lint before commits using [ESLint](https://eslint.org) and [Husky](https://www.npmjs.com/package/husky)
 - Static Types with [TypeScript](https://typescriptlang.org)
