@@ -1,6 +1,6 @@
 import { useParams } from "@remix-run/react";
 import { useEventSource } from "remix-utils/sse/react";
-import { EmailPreviewer } from "~/components/email-previewer";
+import { Previewer } from "./previewer";
 
 export default function TemplateViewer() {
   const { template } = useParams();
@@ -15,7 +15,7 @@ export default function TemplateViewer() {
     );
   }
 
-  return <EmailPreviewer html={html} className="h-full" />;
+  return <Previewer html={html} className="h-full" />;
 }
 
 function getTemplateHtml(event?: string | null) {

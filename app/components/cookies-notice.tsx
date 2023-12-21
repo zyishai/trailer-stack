@@ -26,7 +26,7 @@ export function CookiesNotice({ className }: CookiesNoticeProps) {
           .
         </p>
         <div className="mt-3 self-end">
-          <fetcher.Form method="post" action="/cookies/agree">
+          <fetcher.Form method="post" action="/cookies/accept">
             <Button type="submit" size="sm" className="text-xs sm:text-sm">
               I Understand
             </Button>

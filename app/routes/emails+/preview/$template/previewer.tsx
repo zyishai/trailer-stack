@@ -2,11 +2,11 @@ import { Resizable } from "re-resizable";
 import { cn } from "~/lib/misc";
 import { useMobile } from "~/lib/mobile";
 
-type EmailPreviewerProps = {
+type PreviewerProps = {
   html: string;
   className?: string;
 };
-export function EmailPreviewer({ html, className }: EmailPreviewerProps) {
+export function Previewer({ html, className }: PreviewerProps) {
   const { isMobile } = useMobile();
 
   return (
