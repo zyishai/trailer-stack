@@ -108,9 +108,39 @@
     @apply px-5 whitespace-normal overflow-hidden;
   }
   kbd {
-    @apply leading-normal px-2 border border-pink-200 bg-pink-50 rounded-sm shadow-sm;
+    background-color: #eee;
+    border-radius: 3px;
+    border: 1px solid #b4b4b4;
+    box-shadow:
+      0 1px 1px rgba(0, 0, 0, 0.2),
+      0 2px 0 0 rgba(255, 255, 255, 0.7) inset;
+    color: #333;
+    display: inline-block;
+    font-size: 0.85em;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 4px;
+    white-space: nowrap;
+  }
+  samp {
+    background-color: #eee;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    line-height: 1;
+    @apply dark:bg-slate-700;
   }
   .grid-1 {
     @apply col-start-1 row-start-1;
+  }
+  /* For Webkit-based browsers (Chrome, Safari and Opera) */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* For IE, Edge and Firefox */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
   }
 }
