@@ -12,6 +12,7 @@ module.exports = {
     '/public/build',
     '/public/fonts',
     'package*.json',
-    'components.json'
+    'components.json',
+    'tsconfig.json'
   ]
 };

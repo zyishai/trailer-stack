@@ -6,6 +6,15 @@ const envSchema = z.object({
   DB_ROOT_PASSWORD: z.string(),
   DB_NAMESPACE: z.string().optional(),
   DB_DATABASE: z.string().optional(),
+  MAIL_SMTP_HOST: z.string(),
+  MAIL_SMTP_PORT: z.coerce.number().nonnegative(),
+  MAIL_AUTH_USER: z.string().optional(),
+  MAIL_AUTH_PASS: z.string().optional(),
+  DEV_MAIL_SMTP_HOST: z.string().optional(),
+  DEV_MAIL_SMTP_PORT: z.coerce.number().nonnegative().optional(),
+  DEV_MAIL_AUTH_USER: z.string().optional(),
+  DEV_MAIL_AUTH_PASS: z.string().optional(),
+  EMAIL_TEMPLATES_DIR: z.string(),
   // add here more variables as needed
 });
 

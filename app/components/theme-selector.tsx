@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { capitalize } from "~/lib/misc";
+import capitalize from "capitalize";
 import { THEMES, useTheme } from "~/lib/theme";
 
 const themeIcons = {

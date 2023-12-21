@@ -21,6 +21,7 @@ import { useLayoutInfo } from "./lib/layout-info";
 import { cn } from "./lib/misc";
 import { getCookieConsent } from "./lib/cookie-consent";
 import { RootLayout } from "./components/root-layout";
+import mobile from "is-mobile";
 
 export const links: LinksFunction = () => [
   { rel: "preload", href: customFontStyles, as: "style" },
@@ -59,6 +60,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
     clientHints: getClientHints(request),
     showCookieNotice: cookieConsent === null,
+    isMobile: mobile({
+      ua: request.headers.get("user-agent") || {
+        headers: Object.fromEntries(request.headers.entries()),
+      },
+    }),
   });
 };
 
