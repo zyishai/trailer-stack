@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "@remix-run/react";
 import capitalize from "capitalize";
-import { cn } from "~/lib/misc";
+import { cn, devOnlyEnabled } from "~/lib/misc";
 import { FileIcon } from "lucide-react";
 import {
   Select,
@@ -11,6 +11,12 @@ import {
 } from "~/components/ui/select";
 import { useMobile } from "~/lib/mobile";
 import { useEventSource } from "remix-utils/sse/react";
+
+export function loader() {
+  devOnlyEnabled();
+
+  return null;
+}
 
 export default function PreviewEmails() {
   const { isMobile } = useMobile();

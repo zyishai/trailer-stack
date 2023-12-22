@@ -15,3 +15,12 @@ export function getDomain(request: Request) {
     (host.includes("localhost") ? "http" : "https");
   return `${protocol}://${host}`;
 }
+
+export function devOnlyEnabled() {
+  if (process.env.NODE_ENV !== "development") {
+    throw new Response(undefined, {
+      status: 404,
+      statusText: "Not Found",
+    });
+  }
+}

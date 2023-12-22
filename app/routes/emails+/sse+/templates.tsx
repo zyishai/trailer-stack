@@ -2,8 +2,11 @@ import { LoaderFunctionArgs } from "@remix-run/node";
 import { eventStream } from "remix-utils/sse/server";
 import watch from "node-watch";
 import { getTemplatesDir, getTemplatesNames } from "~/lib/email.server";
+import { devOnlyEnabled } from "~/lib/misc";
 
 export async function loader({ request }: LoaderFunctionArgs) {
+  devOnlyEnabled();
+
   return eventStream(request.signal, send => {
     type SendFunction = typeof send;
 

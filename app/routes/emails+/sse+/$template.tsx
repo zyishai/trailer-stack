@@ -8,8 +8,11 @@ import {
   getTemplatesDir,
   renderTemplate,
 } from "~/lib/email.server";
+import { devOnlyEnabled } from "~/lib/misc";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
+  devOnlyEnabled();
+
   const { template = "" } = params;
   return eventStream(request.signal, send => {
     type SendFunction = typeof send;
