@@ -39,7 +39,7 @@ declare namespace Surreal {
     signin(credentials: { username: string; password: string } | { namespace: string; username: string; password: string } | { namespace: string; database: string; username: string; password: string } | { namespace: string; database: string; scope: string; [k: string]: unknown }): Promise<string>
     invalidate(): Promise<void>
     authenticate(token: string): Promise<boolean>
-    query<Model = unknown, QueryStatement extends string = ''>(sql: QueryStatement, bindings?: Bindings<QueryStatement>): Promise<Model[]>
+    query<QueryStatement extends string = ''>(sql: QueryStatement, bindings?: Bindings<QueryStatement>): Promise<unknown[]>
     select<Data extends Record<string, unknown>>(resource: string): Promise<({ id: string } & Data)[]>
     create<Data extends Record<string, unknown>>(resource: string, data?: Data): Promise<({ id: string } & Data)[]>
     update<Data extends Record<string, unknown>>(resource: string, data?: Data): Promise<({ id: string } & Data)[]>
