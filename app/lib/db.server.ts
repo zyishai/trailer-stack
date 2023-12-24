@@ -16,16 +16,22 @@ export async function getDatabaseInstance() {
     .health()
     .then(() => db)
     .catch(async () => {
-      await db.connect(process.env.DB_ENDPOINT);
-      await db.signin({
-        username: process.env.DB_ROOT_USERNAME,
-        password: process.env.DB_ROOT_PASSWORD,
-      });
-      await db.use({
-        namespace: process.env.DB_NAMESPACE,
-        database: process.env.DB_DATABASE,
-      });
-      return db;
+      try {
+        await db.connect(process.env.DB_ENDPOINT, {
+          namespace: process.env.DB_NAMESPACE,
+          database: process.env.DB_DATABASE,
+        });
+        await db.signin({
+          namespace: process.env.DB_NAMESPACE,
+          database: process.env.DB_DATABASE,
+          username: process.env.DB_ROOT_USERNAME,
+          password: process.env.DB_ROOT_PASSWORD,
+        });
+        return db;
+      } catch (error: any) {
+        console.log(error.message);
+        throw error;
+      }
     });
 }
 
