@@ -14,5 +14,9 @@ module.exports = {
     'package*.json',
     'components.json',
     'tsconfig.json'
-  ]
+  ],
+  rules: {
+    "no-shadow": "off",
+    "@typescript-eslint/no-shadow": ["off", { ignoreTypeValueShadow: true, ignoreFunctionTypeParameterNameValueShadow: true }]
+  }
 };
