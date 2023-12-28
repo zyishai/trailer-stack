@@ -1,0 +1,1 @@
+export { UserTableDefinition } from "./user";

@@ -24,3 +24,7 @@ export function devOnlyEnabled() {
     });
   }
 }
+
+export function isFormData(data: unknown): data is FormData {
+  return data instanceof FormData;
+}

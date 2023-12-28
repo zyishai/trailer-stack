@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-export const formLoginSchema = z.object({
+export const loginSchema = z.object({
   username: z.string({ required_error: "Username is required" }),
   password: z.string({ required_error: "Password is required" }),
 });
 
-export const formRegisterSchema = z.object({
+export const registerSchema = z.object({
   username: z
     .string({ required_error: "Username is required" })
     .min(4, "Username too short")

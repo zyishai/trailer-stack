@@ -1,48 +1,51 @@
 import { FormStrategy } from "remix-auth-form";
-import { formLoginSchema, formRegisterSchema } from "./schema";
+import { User, UserResponse } from "~/models/user";
+import { getDatabaseInstance } from "~/lib/db.server";
 import { parse } from "@conform-to/zod";
-import { createNewUser, verifyUser } from "~/models/user";
-
-function isFormData(data: unknown): data is FormData {
-  return data instanceof FormData;
-}
-
-const Intents = {
-  login: "login",
-  register: "register",
-} as const;
+import { loginSchema, registerSchema } from "./schema";
+import { signin, signup } from "./mutations";
+import { isFormData } from "~/lib/misc";
 
 export default new FormStrategy(async ({ form, context }) => {
   const formData =
     context?.form && isFormData(context.form) ? context.form : form;
-  const submission = parse(formData, {
-    schema: intent => {
-      if (intent === Intents.login) return formLoginSchema;
-      if (intent === Intents.register) return formRegisterSchema;
-      throw new Error("Invalid intent value", {
-        cause: {
-          intent: `Invalid intent value. Expected "login" or "register" but got "${intent}"`,
-        },
-      });
-    },
-  });
 
-  if (Object.keys(submission.error).length > 0) {
-    throw new Error("Invalid credentials", {
-      cause: submission.error,
-    });
+  const intent = formData.get("intent")?.toString() || "";
+  const schema = intent === "login" ? loginSchema : registerSchema;
+  const credentials = parse(formData, { schema });
+
+  if (!credentials.value) {
+    throw credentials;
   }
 
-  if (!submission.value) {
-    throw new Error("Missing credentials"); // this shouldn't throw, but we need to satisfy TS as well :)
-  }
+  const db = await getDatabaseInstance();
 
-  if (submission.intent === Intents.login) {
-    const user = await verifyUser(submission.value);
-    return user;
+  if (intent === "login") {
+    const loginResults = await db.query<UserResponse>(
+      signin,
+      credentials.value,
+    );
+    // Converting the raw object to URLSearchParams because `parse` gets either `FormData` or `URLSearchParams`.
+    const userResponse = new URLSearchParams(loginResults[0] ?? undefined);
+    const user = parse(userResponse, { schema: User });
+
+    if (!user.value) {
+      throw user;
+    } else {
+      return user.value;
+    }
   } else {
-    // @ts-expect-error
-    const user = await createNewUser(submission.value);
-    return user;
+    const registerResults = await db.query<UserResponse>(
+      signup,
+      credentials.value,
+    );
+    const userResponse = new URLSearchParams(registerResults[0] ?? undefined);
+    const user = parse(userResponse, { schema: User });
+
+    if (!user.value) {
+      throw user;
+    } else {
+      return user.value;
+    }
   }
 });

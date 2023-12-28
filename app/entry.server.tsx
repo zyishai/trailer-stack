@@ -13,9 +13,11 @@ import isbot from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 import { preloadRouteAssets } from "remix-utils/preload-route-assets";
 import { validateEnvironmentVariables } from "~/lib/env.server";
+import { seedDatabase } from "../scripts/seed";
 
 const ABORT_DELAY = 5_000;
 validateEnvironmentVariables();
+await seedDatabase();
 
 export default function handleRequest(
   request: Request,
