@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// prettier-ignore
 export const UserTableDefinition = /* surrealql */ `
   DEFINE TABLE user SCHEMAFULL;
 
@@ -10,8 +11,6 @@ export const UserTableDefinition = /* surrealql */ `
 
   DEFINE FIELD email ON user TYPE string
     ASSERT string::is::email($value);
-
-  DEFINE FIELD password ON user TYPE string;
 
   DEFINE FIELD created ON user TYPE datetime VALUE $before OR time::now() DEFAULT time::now();
 
