@@ -10,9 +10,7 @@
     "typecheck": "tsc",
     "lint": "eslint --cache .",
     "force-format": "prettier --write .",
-    "prepare": "is-ci || husky install",
-    "migrate": "node ./scripts/migrate-database.js",
-    "postinstall": "npm run migrate"
+    "prepare": "is-ci || husky install"
   },
   "dependencies": {
     "@conform-to/react": "^0.9.1",
@@ -35,7 +33,6 @@
     "clsx": "^2.0.0",
     "cmdk": "^0.2.0",
     "copy-to-clipboard": "^3.3.3",
-    "east": "^2.0.3",
     "esbuild": "^0.19.10",
     "glob": "^10.3.10",
     "is-mobile": "^4.0.0",

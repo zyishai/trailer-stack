@@ -1,9 +1,0 @@
-{
-  "adapter": "./config/surreal.adapter.js",
-  "dir": "./migrations",
-  "migrationExtension": "js",
-  "sourceMigrationExtension": "ts",
-  "esModules": true,
-  "templatesDir": "./config/migration-templates",
-  "migrationTable": "_migration"
-}
