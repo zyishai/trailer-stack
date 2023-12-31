@@ -3,12 +3,17 @@ const signin = /* surrealql */ `
   BEGIN TRANSACTION;
 
   LET $users = SELECT * FROM user WHERE username = $username;
-  LET $credential = SELECT * FROM ONLY credential WHERE user_id = $users[0].id AND crypto::argon2::compare(password, $password);
 
-  RETURN IF $users[0].id && $credential.id {
-      $users[0]
+  RETURN IF $users[0].id {
+    LET $credentials = SELECT * FROM credential WHERE user_id = $users[0].id AND crypto::argon2::compare(password, $password);
+
+    RETURN IF $credentials[0].id {
+        $users[0]
+    } ELSE {
+        THROW "Invalid username or password";
+    }
   } ELSE {
-      THROW "Invalid username or password";
+    THROW "Invalid username or password";
   };
 
   COMMIT TRANSACTION;

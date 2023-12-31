@@ -1,11 +1,11 @@
 import { Authenticator } from "remix-auth";
 import { User } from "~/models/user";
 import { authSessionStorage } from "./session.server";
-import formStrategy from "./strategies/form/form.strategy";
+import credsStrategy from "./strategies/creds/strategy";
 
 export const Strategies = {
-  ClassicUserPassword: "classic",
+  Credentials: "classic",
 } as const;
 
 export const authenticator = new Authenticator<User>(authSessionStorage);
-authenticator.use(formStrategy, Strategies.ClassicUserPassword);
+authenticator.use(credsStrategy, Strategies.Credentials);
