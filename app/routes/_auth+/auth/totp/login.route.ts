@@ -1,13 +1,9 @@
 import { parse } from "@conform-to/zod";
 import { ActionFunctionArgs, json } from "@remix-run/node";
 import { redirectBack } from "remix-utils/redirect-back";
-import { z } from "zod";
 import { Strategies, authenticator } from "~/lib/auth/auth.server";
+import { emailSchema } from "~/lib/auth/strategies/totp/schema";
 import { getSubmission } from "~/lib/form";
-
-const emailSchema = z.object({
-  email: z.string().email(),
-});
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.clone().formData();

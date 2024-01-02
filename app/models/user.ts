@@ -1,4 +1,5 @@
 import { z } from "zod";
+import normalizeEmail from "normalize-email";
 
 // prettier-ignore
 export const UserTableDefinition = /* surrealql */ `
@@ -19,7 +20,12 @@ export const UserTableDefinition = /* surrealql */ `
   DEFINE INDEX username ON user FIELDS username UNIQUE;
   DEFINE INDEX email ON user FIELDS email UNIQUE;
 
-  # TODO: Add an event that deletes the respective credential entry when the user is deleted
+  -- Events
+
+  DEFINE EVENT user_deleted ON TABLE user WHEN $event = "DELETE" THEN {
+    DELETE FROM credential WHERE user_id = $before.id;
+    DELETE FROM authenticator WHERE userId = $before.id
+  };
 `;
 
 export const verifyUserEmailExists = /* surrealql */ `
@@ -81,8 +87,8 @@ export const getUserById = /* surrealql */ `
 export const User = z.object({
   id: z.string().startsWith("user:"),
   username: z.string(),
-  email: z.string().email(),
-  created: z.date({ coerce: true }),
+  email: z.string().email().transform(normalizeEmail),
+  created: z.string().datetime(),
 });
 
 export type User = z.infer<typeof User>;

@@ -5,6 +5,7 @@ import { render } from "@react-email/components";
 import { glob } from "glob";
 import { join, basename, normalize } from "node:path";
 import esbuild from "esbuild";
+import * as emailValidator from "deep-email-validator";
 
 const isDevEnvironment = process.env.NODE_ENV !== "production";
 
@@ -44,6 +45,22 @@ function getTransporterConfig(): SMTPTransport.Options {
   };
 }
 
+export async function validateEmailAddress(emailAddress: string) {
+  const validationResult = await emailValidator.validate(emailAddress);
+  if (!validationResult.valid) {
+    const { validators, reason } = validationResult;
+    const validationReason = reason
+      ? validators[reason as keyof typeof validators]?.reason
+      : "Unknown reason";
+    console.warn(
+      `⚠️ Email Validation Error: Invalid email address. 👉 Reason: ${validationReason}`,
+    );
+    return false;
+  } else {
+    return true;
+  }
+}
+
 type MailProps = {
   from?: string;
   to: string;
@@ -51,7 +68,7 @@ type MailProps = {
   email: React.ReactElement;
   attachments?: Attachment[];
 };
-export async function sendMail({
+export async function sendEmail({
   from = "Trailer Stack <trailer@remix.stack>",
   to,
   subject,

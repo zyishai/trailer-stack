@@ -7,7 +7,7 @@ import {
   getTotpByHash,
   updateTotp,
 } from "~/models/totp";
-import { sendMail } from "~/lib/email.server";
+import { sendEmail, validateEmailAddress } from "~/lib/email.server";
 import TotpTemplate from "~/components/emails/totp";
 import { parse } from "@conform-to/zod";
 import { emailSchema } from "./schema";
@@ -84,7 +84,7 @@ export default new TOTPStrategy(
       }
     },
     sendTOTP: async ({ email, code, magicLink, request, form }) => {
-      const response = await sendMail({
+      const response = await sendEmail({
         email: TotpTemplate({ verificationCode: code, magicLink: magicLink }),
         to: email,
         subject: "[Trailer Stack] Action required",
@@ -107,7 +107,12 @@ export default new TOTPStrategy(
       const db = await getDatabaseInstance();
       await db.query(verifyUserEmailExists, { email: userEmail.value.email }); // It'll throw if email not found
 
-      // TODO: verify email address is trusted and not disposable
+      // Verify email address is trusted and not disposable
+      const isEmailValid = await validateEmailAddress(email);
+      if (!isEmailValid) {
+        userEmail.error.email = ["Invalid email address"];
+        throw userEmail;
+      }
     },
     magicLinkGeneration: {
       callbackPath: "/auth/totp/magic-link", // default: '/magic-link'

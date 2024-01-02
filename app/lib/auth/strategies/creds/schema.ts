@@ -1,3 +1,4 @@
+import normalizeEmail from "normalize-email";
 import { z } from "zod";
 
 export const loginSchema = z.object({
@@ -16,5 +17,6 @@ export const registerSchema = z.object({
     .max(20, "Password too long"),
   email: z
     .string({ required_error: "Email is required" })
-    .email("Invalid email"),
+    .email("Invalid email")
+    .transform(normalizeEmail),
 });
