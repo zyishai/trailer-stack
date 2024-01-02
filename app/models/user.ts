@@ -50,6 +50,34 @@ export const getUserByEmailAddress = /* surrealql */ `
   COMMIT TRANSACTION;
 `;
 
+export const getUserByUsername = /* surrealql */ `
+  BEGIN TRANSACTION;
+
+  LET $users = SELECT * FROM user WHERE username = $username;
+
+  RETURN IF $users[0].id {
+    $users[0]
+  } ELSE {
+    THROW "User not found";
+  };
+
+  COMMIT TRANSACTION;
+`;
+
+export const getUserById = /* surrealql */ `
+  BEGIN TRANSACTION;
+
+  LET $users = SELECT * FROM user WHERE id = $id;
+
+  RETURN IF $users[0].id {
+    $users[0]
+  } ELSE {
+    THROW "User not found";
+  };
+
+  COMMIT TRANSACTION;
+`;
+
 export const User = z.object({
   id: z.string().startsWith("user:"),
   username: z.string(),

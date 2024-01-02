@@ -17,6 +17,7 @@ const envSchema = z.object({
   EMAIL_TEMPLATES_DIR: z.string(),
   AUTH_COOKIE_SECRET: z.string().min(32 /* 16 bytes hex string */),
   TOTP_ENCRYPTION_SECRET: z.string().min(32),
+  APP_NAME: z.string(),
   // add here more variables as needed
 });
 

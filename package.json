@@ -49,6 +49,7 @@
     "remix-auth": "^3.6.0",
     "remix-auth-form": "^1.4.0",
     "remix-auth-totp": "^2.0.0",
+    "remix-auth-webauthn": "^0.1.0",
     "remix-utils": "^7.3.0",
     "sonner": "^1.2.4",
     "surrealdb.node": "^0.3.0",

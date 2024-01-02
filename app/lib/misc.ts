@@ -11,7 +11,7 @@ export function getDomain(request: Request) {
     request.headers.get("host") ||
     new URL(request.url).host;
   const protocol =
-    new URL(request.url).protocol ||
+    new URL(request.url).protocol.replace(/:/g, "") ||
     (host.includes("localhost") ? "http" : "https");
   return `${protocol}://${host}`;
 }

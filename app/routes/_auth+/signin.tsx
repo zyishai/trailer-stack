@@ -5,7 +5,7 @@ import { useId, useMemo } from "react";
 import { InputWithError } from "~/components/form/input-with-error";
 import { FormError } from "~/components/form/form-error";
 import { Button } from "~/components/ui/button";
-import { authenticator } from "~/lib/auth/auth.server";
+import { authenticator, generateWebauthnOptions } from "~/lib/auth/auth.server";
 import { submissionSchema } from "~/lib/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { z } from "zod";
@@ -14,6 +14,11 @@ import { getDatabaseInstance } from "~/lib/db.server";
 import { isTotpActive } from "~/models/totp";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { MailCheck } from "lucide-react";
+import {
+  browserSupportsWebAuthn,
+  handleFormSubmit,
+} from "~/lib/auth/strategies/authn/helpers";
+import type { WebAuthnOptionsResponse } from "remix-auth-webauthn";
 
 const authMethodSchema = z.preprocess(
   method => (method === "otp" ? "totp" : method),
@@ -49,23 +54,27 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
   const sessionError = authSession.get(authenticator.sessionErrorKey);
 
+  // WebAuthn Options
+  const optionsResponse = await generateWebauthnOptions(request, null);
+  const webauthnOptions = await optionsResponse.json();
+
   return json(
-    { method, authEmail, totpValid, sessionError },
+    { method, authEmail, totpValid, sessionError, webauthnOptions },
     {
-      headers: {
-        "Set-Cookie": await authSessionStorage.commitSession(authSession), // clear flash messages
-      },
+      headers: optionsResponse.headers,
     },
   );
 }
 
 export default function SignInPage() {
-  const { method, authEmail, totpValid, sessionError } =
+  const { method, authEmail, totpValid, sessionError, webauthnOptions } =
     useLoaderData<typeof loader>();
+  const webauthnSupported =
+    typeof document !== "undefined" ? browserSupportsWebAuthn() : true;
 
   return (
     <div className="flex h-full flex-col items-center overflow-y-auto">
-      <section className="mt-[20vh] flex min-w-[28rem] max-w-3xl flex-col items-center rounded-xl px-8 pb-12 pt-10 shadow-lg ring-1 ring-inset ring-slate-100">
+      <section className="mt-[15vh] flex min-w-[28rem] max-w-3xl flex-col items-center rounded-xl px-8 pb-12 pt-10 shadow-lg ring-1 ring-inset ring-slate-100">
         <h1 className="mb-8 font-display font-semibold">Sign In</h1>
         <Tabs className="w-full" defaultValue={method}>
           <TabsList className="mb-6 flex w-full">
@@ -87,6 +96,23 @@ export default function SignInPage() {
             )}
           </TabsContent>
         </Tabs>
+
+        {webauthnSupported ? (
+          <>
+            <div className="relative my-5">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or
+                </span>
+              </div>
+            </div>
+
+            <WebAuthnSignInForm options={webauthnOptions} />
+          </>
+        ) : null}
       </section>
     </div>
   );
@@ -225,5 +251,27 @@ function TotpVerifyForm({ email }: { email?: string }) {
         </Button>
       </refresh.Form>
     </>
+  );
+}
+
+function WebAuthnSignInForm({ options }: { options: WebAuthnOptionsResponse }) {
+  const auth = useFetcher();
+
+  return (
+    <auth.Form
+      onSubmit={handleFormSubmit(options)}
+      method="post"
+      action="/auth/authn/login"
+      className="w-full"
+    >
+      <Button
+        variant="outline"
+        name="intent"
+        value="authentication"
+        className="w-full"
+      >
+        Sign-in with device/passkey
+      </Button>
+    </auth.Form>
   );
 }
