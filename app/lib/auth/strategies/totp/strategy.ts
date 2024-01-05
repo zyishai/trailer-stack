@@ -27,7 +27,10 @@ function responseToSearchParams(response?: Record<string, any>) {
 
   for (const [key, value] of Object.entries(response)) {
     if (value !== null && value !== undefined) {
-      params.append(key, value.toString());
+      params.append(
+        key,
+        typeof value === "object" ? JSON.stringify(value) : value.toString(),
+      );
     }
   }
 
@@ -40,26 +43,29 @@ export default new TOTPStrategy(
     createTOTP: async (data, expiresAt) => {
       const db = await getDatabaseInstance();
       const results = await db.query<TotpResponse>(createTotp, {
-        ...data,
-        expiresAt: expiresAt.toISOString(),
+        type: "auth",
+        data: {
+          ...data,
+          expiresAt: expiresAt.toISOString(),
+        },
       });
-      const totp = parse(responseToSearchParams(results[0]), { schema: Totp });
-      if (!totp.value) {
+      const totp = Totp.safeParse(results[0]);
+      if (!totp.success || totp.data.type !== "auth") {
         throw new Error("Could not generate OTP code");
       } else {
         console.debug(
-          `ℹ️ Generated totp: ${totp.value.hash}. ⏰ Expires at: ${totp.value.expiresAt}`,
+          `ℹ️ Generated totp: ${totp.data.data.hash}. ⏰ Expires at: ${totp.data.data.expiresAt}`,
         );
       }
     },
     readTOTP: async hash => {
       const db = await getDatabaseInstance();
       const results = await db.query<TotpResponse>(getTotpByHash, { hash });
-      const totp = parse(responseToSearchParams(results[0]), { schema: Totp });
-      if (!totp.value) {
+      const totp = Totp.safeParse(results[0]);
+      if (!totp.success || totp.data.type !== "auth") {
         return null;
       } else {
-        return totp.value;
+        return totp.data.data;
       }
     },
     updateTOTP: async (hash, data) => {
@@ -68,8 +74,8 @@ export default new TOTPStrategy(
         hash,
         ...data,
       });
-      const totp = parse(responseToSearchParams(results[0]), { schema: Totp });
-      if (!totp.value) {
+      const totp = Totp.safeParse(results[0]);
+      if (!totp.success || totp.data.type !== "auth") {
         console.warn(
           `⚠️ Failed to update totp ${hash}. Tried to apply the following changes: ${JSON.stringify(
             data,
@@ -79,7 +85,7 @@ export default new TOTPStrategy(
         );
       } else {
         console.debug(
-          `ℹ️ Updated totp: ${totp.value.hash}. ⚙️ Active: ${totp.value.active}, 🔢 Attempts: ${totp.value.attempts}`,
+          `ℹ️ Updated totp: ${totp.data.data.hash}. ⚙️ Active: ${totp.data.data.active}, 🔢 Attempts: ${totp.data.data.attempts}`,
         );
       }
     },
