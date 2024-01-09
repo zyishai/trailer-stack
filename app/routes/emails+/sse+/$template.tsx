@@ -2,18 +2,21 @@ import { type LoaderFunctionArgs } from "@remix-run/node";
 import { eventStream } from "remix-utils/sse/server";
 import watch from "node-watch";
 import { normalize } from "node:path";
-import { unlinkSync } from "node:fs";
-import {
-  compileTemplate,
-  getTemplatesDir,
-  renderTemplate,
-} from "~/lib/email.server";
+import { unlinkSync, existsSync } from "node:fs";
+import { compileTemplate, getTemplatesDir } from "./_helpers";
+import { renderTemplate } from "~/lib/email.server";
 import { devOnlyEnabled } from "~/lib/misc";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   devOnlyEnabled();
 
   const { template = "" } = params;
+  const templatesDir = getTemplatesDir();
+  const templatePath = normalize(`${templatesDir}/${template}.tsx`);
+  if (!existsSync(templatePath)) {
+    return null;
+  }
+
   return eventStream(request.signal, send => {
     type SendFunction = typeof send;
 
@@ -58,8 +61,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         });
     }
 
-    const templatesDir = getTemplatesDir();
-    const templatePath = normalize(`${templatesDir}/${template}.tsx`);
     const watcher = watch(templatePath).on("change", (type, filename) => {
       if (taskId) {
         clearTimeout(taskId);

@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function getDomain(request: Request) {
+export function getDomain(request: Request, pathname?: string) {
   const host =
     request.headers.get("x-forwarded-for") ||
     request.headers.get("host") ||
@@ -13,7 +13,7 @@ export function getDomain(request: Request) {
   const protocol =
     new URL(request.url).protocol.replace(/:/g, "") ||
     (host.includes("localhost") ? "http" : "https");
-  return `${protocol}://${host}`;
+  return new URL(pathname ?? "", `${protocol}://${host}`).href;
 }
 
 export function devOnlyEnabled() {

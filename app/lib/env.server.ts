@@ -39,6 +39,10 @@ export function validateEnvironmentVariables() {
   }
 }
 
+export const isDevEnvironment = process.env.NODE_ENV === "development";
+export const isTestEnvironment = process.env.NODE_ENV === "test";
+export const isProdEnvironment = process.env.NODE_ENV === "production";
+
 declare global {
   namespace NodeJS {
     interface ProcessEnv extends z.infer<typeof envSchema> {}

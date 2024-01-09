@@ -1,7 +1,7 @@
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { eventStream } from "remix-utils/sse/server";
 import watch from "node-watch";
-import { getTemplatesDir, getTemplatesNames } from "~/lib/email.server";
+import { getTemplatesDir, getTemplatesNames } from "./_helpers";
 import { devOnlyEnabled } from "~/lib/misc";
 
 export async function loader({ request }: LoaderFunctionArgs) {
