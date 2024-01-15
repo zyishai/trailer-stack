@@ -1,5 +1,7 @@
 import { z } from "zod";
-import normalizeEmail from "normalize-email";
+import { EmailAddress } from "./email";
+import { Username } from "./username";
+import { getDatabaseInstance } from "~/lib/db.server";
 
 // prettier-ignore
 export const UserTableDefinition = /* surrealql */ `
@@ -28,68 +30,70 @@ export const UserTableDefinition = /* surrealql */ `
   };
 `;
 
-export const verifyUserEmailExists = /* surrealql */ `
-  BEGIN TRANSACTION;
+export const getUserById = async (id: string) => {
+  const db = await getDatabaseInstance();
 
-  LET $users = SELECT * FROM user WHERE email = $email;
+  const [user] = await db.query<User | null>(
+    /* surrealql */ `
+    SELECT * FROM user WHERE id = $id;
+  `,
+    { id },
+  );
 
-  RETURN IF $users[0].id {
-    true
-  } ELSE {
-    THROW "Email not found";
-  };
+  return user;
+};
 
-  COMMIT TRANSACTION;
-`;
+export const getUserByEmailAddress = async (email: EmailAddress) => {
+  const db = await getDatabaseInstance();
 
-export const getUserByEmailAddress = /* surrealql */ `
-  BEGIN TRANSACTION;
+  const [user] = await db.query<User | null>(
+    /* surrealql */ `
+    BEGIN TRANSACTION;
 
-  LET $users = SELECT * FROM user WHERE email = $email;
+    LET $users = SELECT * FROM user WHERE email = $email;
 
-  RETURN IF $users[0].id {
-    $users[0]
-  } ELSE {
-    THROW "User not found";
-  };
+    RETURN IF $users[0].id {
+      $users[0]
+    } ELSE {
+      NULL
+    };
 
-  COMMIT TRANSACTION;
-`;
+    COMMIT TRANSACTION;
+  `,
+    { email },
+  );
 
-export const getUserByUsername = /* surrealql */ `
-  BEGIN TRANSACTION;
+  return user;
+};
 
-  LET $users = SELECT * FROM user WHERE username = $username;
+export const getUserByUsername = async (username: Username) => {
+  const db = await getDatabaseInstance();
 
-  RETURN IF $users[0].id {
-    $users[0]
-  } ELSE {
-    THROW "User not found";
-  };
+  const [user] = await db.query<User | null>(
+    /* surrealql */ `
+    BEGIN TRANSACTION;
 
-  COMMIT TRANSACTION;
-`;
+    LET $users = SELECT * FROM user WHERE username = $username;
 
-export const getUserById = /* surrealql */ `
-  BEGIN TRANSACTION;
+    RETURN IF $users[0].id {
+      $users[0]
+    } ELSE {
+      NULL
+    };
 
-  LET $users = SELECT * FROM user WHERE id = $id;
+    COMMIT TRANSACTION;
+  `,
+    { username },
+  );
 
-  RETURN IF $users[0].id {
-    $users[0]
-  } ELSE {
-    THROW "User not found";
-  };
-
-  COMMIT TRANSACTION;
-`;
+  return user;
+};
 
 export const User = z.object({
   id: z.string().startsWith("user:"),
   username: z.string(),
-  email: z.string().email().transform(normalizeEmail),
+  email: EmailAddress,
   created: z.string().datetime(),
 });
 
 export type User = z.infer<typeof User>;
-export type UserResponse = Omit<User, "created"> & { created: string };

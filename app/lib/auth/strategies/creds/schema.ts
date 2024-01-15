@@ -1,22 +1,21 @@
-import normalizeEmail from "normalize-email";
 import { z } from "zod";
+import { EmailAddress } from "~/models/email";
+import { Password } from "~/models/password";
+import { Username } from "~/models/username";
 
-export const loginSchema = z.object({
-  username: z.string({ required_error: "Username is required" }),
-  password: z.string({ required_error: "Password is required" }),
+export const LoginSchema = z.object({
+  intent: z.literal("login"),
+  username: Username,
+  password: Password,
 });
 
-export const registerSchema = z.object({
-  username: z
-    .string({ required_error: "Username is required" })
-    .min(4, "Username too short")
-    .max(10, "Username too long"),
-  password: z
-    .string({ required_error: "Password is required" })
-    .min(6, "Password too short")
-    .max(20, "Password too long"),
-  email: z
-    .string({ required_error: "Email is required" })
-    .email("Invalid email")
-    .transform(normalizeEmail),
+export const RegisterSchema = z.object({
+  intent: z.literal("register"),
+  username: Username,
+  password: Password,
+  email: EmailAddress,
 });
+
+type LoginCredentials = z.infer<typeof LoginSchema>;
+type RegisterCredentials = z.infer<typeof RegisterSchema>;
+export type FormStrategyCredentials = LoginCredentials | RegisterCredentials;

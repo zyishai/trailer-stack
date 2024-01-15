@@ -1,3 +1,7 @@
+import { z } from "zod";
+import { getDatabaseInstance } from "~/lib/db.server";
+import { Password } from "./password";
+
 // prettier-ignore
 export const CredentialTableSchema = /* surrealql */`
   DEFINE TABLE credential SCHEMAFULL;
@@ -15,3 +19,22 @@ export const CredentialTableSchema = /* surrealql */`
 
   DEFINE INDEX user_id ON credential FIELDS user_id UNIQUE;
 `;
+
+export const updateCredential = async (userId: string, password: Password) => {
+  const db = await getDatabaseInstance();
+  const [credential] = await db.query<UserCredential | null>(
+    /* surrealql */ `
+    UPDATE credential SET password = $password WHERE user_id = $userId;
+  `,
+    { userId, password },
+  );
+  return credential;
+};
+
+export const UserCredential = z.object({
+  id: z.string().startsWith("credential:"),
+  user_id: z.string().startsWith("user:"),
+  password: Password,
+  created: z.string().datetime(),
+});
+export type UserCredential = z.infer<typeof UserCredential>;

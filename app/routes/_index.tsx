@@ -3,6 +3,8 @@ import { Link } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import { CodeWithCopy } from "~/components/code-with-copy";
 import { MouseIcon } from "lucide-react";
+import { Separator } from "~/components/ui/separator";
+import { LogoutButton } from "~/components/logout-button";
 
 export const meta: MetaFunction = () => {
   return [
@@ -27,6 +29,29 @@ export default function IndexPage() {
           <span className="text-gray-600 dark:text-gray-400">Build</span>
           <span className="">.</span>
           <span className="text-gray-800 dark:text-gray-300">Deploy</span>
+        </div>
+        <LogoutButton />
+        <Separator className="my-2 w-1/4 bg-slate-200" />
+        <div className="flex items-center justify-center gap-4">
+          <Button
+            variant="default"
+            className="bg-sky-700 hover:bg-sky-700/90"
+            asChild
+          >
+            <Link to="/signin" className="muted">
+              Try it out!
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <a
+              href="https://github.com/zyishai/trailer-stack"
+              target="_blank"
+              rel="noreferrer"
+              className="muted"
+            >
+              Source Code
+            </a>
+          </Button>
         </div>
         <div className="absolute inset-x-0 -bottom-20 flex animate-bounce flex-col items-center gap-1 text-slate-400">
           <MouseIcon />

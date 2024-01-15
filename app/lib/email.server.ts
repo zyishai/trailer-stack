@@ -78,3 +78,5 @@ export async function renderTemplate(template: React.ReactElement) {
 
   return { html, text };
 }
+
+export * as emailValidator from "deep-email-validator";

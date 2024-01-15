@@ -1,73 +1,45 @@
 import { FormStrategy } from "remix-auth-form";
-import { User, UserResponse } from "~/models/user";
-import { getDatabaseInstance } from "~/lib/db.server";
-import { parse } from "@conform-to/zod";
-import { loginSchema, registerSchema } from "./schema";
+import { type FormStrategyCredentials } from "./schema";
 import { signin, signup } from "./mutations";
-import { isFormData } from "~/lib/misc";
-import { z } from "zod";
-import { Submission } from "@conform-to/react";
-import { validateEmailAddress } from "~/lib/email.server";
-
-const intentSchema = z.enum(["login", "register"]).catch("register");
 
 export default new FormStrategy(async ({ form, context }) => {
-  const formData =
-    context?.form && isFormData(context.form) ? context.form : form;
-
-  const intent = intentSchema.parse(formData.get("intent")?.toString());
-  const schema = intent === "login" ? loginSchema : registerSchema;
-  const credentials = parse(formData, { schema });
-
-  if (!credentials.value) {
-    throw credentials;
-  }
-
-  const db = await getDatabaseInstance();
-
-  if (intent === "login") {
-    const loginResults = await db.query<UserResponse>(
-      signin,
-      credentials.value,
+  if (!context?.credentials) {
+    console.error(
+      `🚨 [Form Auth] Server error: context.credentials doesn't exist`,
     );
-    // Converting the raw object to URLSearchParams because `parse` gets either `FormData` or `URLSearchParams`.
-    const userResponse = new URLSearchParams(loginResults[0] ?? undefined);
-    const user = parse(userResponse, { schema: User });
+    throw new Error("Server error: failed to retrieve credentials");
+  }
+  // This should be correct, because we parse the form data in the handlers
+  const credentials = context.credentials as FormStrategyCredentials;
 
-    if (!user.value) {
-      throw user;
-    } else {
-      return user.value;
+  if (credentials.intent === "login") {
+    const { username, password } = credentials;
+
+    try {
+      const user = await signin(username, password);
+      if (!user) {
+        throw new Error("Invalid username or password");
+      }
+
+      return user;
+    } catch (error: any) {
+      console.error(`🚨 [Signin] Server error: ${error}`);
+      throw new Error("Server error: failed to signin user");
     }
   } else {
-    // Verify email address is trusted and not disposable
-    if (
-      "email" in credentials.value &&
-      typeof credentials.value.email === "string"
-    ) {
-      if (!(await validateEmailAddress(credentials.value.email))) {
-        throw {
-          intent,
-          payload: credentials,
-          error: {
-            email: ["Invalid email address"],
-          },
-        } as Submission;
-      }
-    }
-
     // Create user
-    const registerResults = await db.query<UserResponse>(
-      signup,
-      credentials.value,
-    );
-    const userResponse = new URLSearchParams(registerResults[0] ?? undefined);
-    const user = parse(userResponse, { schema: User });
+    const { username, password, email } = credentials;
 
-    if (!user.value) {
-      throw user;
-    } else {
-      return user.value;
+    try {
+      const user = await signup(username, password, email);
+      if (!user) {
+        throw new Error("Invalid username or password");
+      }
+
+      return user;
+    } catch (error: any) {
+      console.error(`🚨 [Signup] Server error: ${error}`);
+      throw new Error("Server error: failed to create user");
     }
   }
 });

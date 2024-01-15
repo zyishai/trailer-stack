@@ -1,5 +1,5 @@
 import { conform, useForm } from "@conform-to/react";
-import { useFetcher } from "@remix-run/react";
+import { Link, useFetcher } from "@remix-run/react";
 import { useId, useMemo } from "react";
 import { Button } from "~/components/ui/button";
 import { submissionSchema } from "~/lib/form";
@@ -28,8 +28,8 @@ export default function SignUpPage() {
   });
 
   return (
-    <div className="flex h-full flex-col items-center justify-center">
-      <section className="flex min-w-[28rem] max-w-3xl flex-col items-center rounded-xl px-8 pb-12 pt-10 shadow-lg ring-1 ring-inset ring-slate-100">
+    <div className="flex h-full flex-col items-center overflow-y-auto">
+      <section className="mt-[15vh] flex min-w-[28rem] max-w-3xl flex-col items-center rounded-xl px-8 pb-12 pt-10 shadow-lg ring-1 ring-inset ring-slate-100">
         <h1 className="mb-8 font-display font-semibold">Sign Up</h1>
         <auth.Form
           {...form.props}
@@ -62,6 +62,15 @@ export default function SignUpPage() {
             <Button>Create account</Button>
           </div>
         </auth.Form>
+        <div className="muted mt-8 text-xs">
+          Already a member?{" "}
+          <Link
+            to="/signin"
+            className="font-medium text-slate-800 hover:underline dark:text-slate-200"
+          >
+            Login
+          </Link>
+        </div>
       </section>
     </div>
   );

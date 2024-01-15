@@ -1,89 +1,91 @@
 import { z } from "zod";
+import { getDatabaseInstance } from "~/lib/db.server";
 
 export const TotpTableDefinition = /* surrealql */ `
-  DEFINE TABLE totp SCHEMALESS;
+  DEFINE TABLE totp SCHEMAFULL;
 
   -- Fields
-  DEFINE FIELD type ON totp TYPE string
-    ASSERT $value in ["auth", "reset_password"];
-
-  DEFINE FIELD data ON totp TYPE object;
-  
-  DEFINE FIELD data.hash ON totp TYPE string;
-  DEFINE FIELD data.active ON totp TYPE bool;
-  DEFINE FIELD data.expiresAt ON totp TYPE datetime;
-  DEFINE FIELD data.* ON totp FLEXIBLE TYPE any;
-  DEFINE FIELD created ON totp TYPE datetime VALUE $before OR time::now() DEFAULT time::now();
+  DEFINE FIELD otp ON totp TYPE string;
+  DEFINE FIELD hash ON totp TYPE string;
+  DEFINE FIELD expiresAt ON totp TYPE datetime DEFAULT time::now() + 10m;
+  DEFINE FIELD attempts ON totp TYPE number DEFAULT 0; # Not in use currently
+  DEFINE FIELD active ON totp TYPE any
+      DEFAULT <future>{ attempts < 3 AND expiresAt > time::now() };
+  DEFINE FIELD created ON totp TYPE datetime 
+      VALUE $before OR time::now() 
+      DEFAULT time::now();
 
   -- Indexes
-
-  DEFINE INDEX type ON totp FIELDS type;
-  DEFINE INDEX token_hash ON totp FIELDS data.hash UNIQUE;
-  DEFINE INDEX token_expiresAt ON totp FIELDS data.expiresAt;
+  DEFINE INDEX otp ON totp FIELDS otp UNIQUE;
 `;
 
-export const getTotpByHash = /* surrealql */ `
-  BEGIN TRANSACTION;
+export const createTotp = async (otp: string, hash: string) => {
+  const db = await getDatabaseInstance();
+  const [totp] = await db.query<Totp | null>(
+    /* surrealql */ `
+    CREATE ONLY totp CONTENT {
+      otp: $otp,
+      hash: $hash
+    };
+  `,
+    { otp, hash },
+  );
 
-  RETURN SELECT * FROM totp WHERE data.hash = $hash;
+  return totp;
+};
 
-  COMMIT TRANSACTION;
-`;
+export const updateTotp = async (
+  id: string,
+  data: Partial<
+    Pick<Totp, "active" | "attempts" | "expiresAt" | "otp" | "hash">
+  >,
+) => {
+  const db = await getDatabaseInstance();
+  const [totp] = await db.query<Totp | null>(
+    /* surrealql */ `
+    UPDATE totp MERGE {
+      otp: IF $otp IS NOT NONE { $otp } ELSE { otp },
+      hash: IF $hash IS NOT NONE { $hash } ELSE { hash },
+      active: IF $active IS NOT NONE { $active } ELSE { active },
+      attempts: IF $attempts IS NOT NONE { $attempts } ELSE { attempts },
+      expiresAt: IF $expiresAt IS NOT NONE { $expiresAt } ELSE { expiresAt },
+    } WHERE id = $id;
+  `,
+    { id, ...data },
+  );
 
-export const createTotp = /* surrealql */ `
-  BEGIN TRANSACTION;
+  return totp;
+};
 
-  RETURN CREATE ONLY totp SET type = $type, data = $data;
+export const deleteTotp = async (id: string) => {
+  const db = await getDatabaseInstance();
+  await db.query(
+    /* surrealql */ `
+    DELETE FROM totp WHERE id = $id
+  `,
+    { id },
+  );
+};
 
-  COMMIT TRANSACTION;
-`;
+export const getTotp = async (otp: string) => {
+  const db = await getDatabaseInstance();
+  const [totp] = await db.query<Totp | null>(
+    /* surrealql */ `
+    SELECT * FROM totp WHERE otp = $otp;
+  `,
+    { otp },
+  );
 
-export const updateTotp = /* surrealql */ `
-  BEGIN TRANSACTION;
+  return totp;
+};
 
-  RETURN UPDATE totp MERGE {
-    data: {
-      active: IF $active IS NOT NONE { $active } ELSE { data.active },
-      attempts: IF $attempts IS NOT NONE { $attempts } ELSE { data.attempts }
-    }
-  } WHERE data.hash = $hash;
-
-  COMMIT TRANSACTION;
-`;
-
-export const isTotpActive = /* surrealql */ `
-  BEGIN TRANSACTION;
-
-  LET $otps = SELECT * FROM totp WHERE data.hash = $hash;
-
-  RETURN IF $otps[0].data.active {
-    true
-  } ELSE {
-    false
-  };
-
-  COMMIT TRANSACTION;
-`;
-
-export const Totp = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("auth"),
-    data: z.object({
-      hash: z.string(),
-      active: z.coerce.boolean(),
-      attempts: z.coerce.number(),
-      expiresAt: z.coerce.date(),
-    }),
-  }),
-  z.object({
-    type: z.literal("reset_password"),
-    data: z.object({
-      hash: z.string(),
-      active: z.coerce.boolean(),
-      expiresAt: z.coerce.date(),
-    }),
-  }),
-]);
-
+export const Totp = z.object({
+  id: z.string().startsWith("totp:"),
+  otp: z.string(),
+  hash: z.string(),
+  expiresAt: z.string().datetime(),
+  attempts: z.number(),
+  active: z.boolean(),
+  created: z.string().datetime(),
+});
 export type Totp = z.infer<typeof Totp>;
-export type TotpResponse = ReplaceDeep<Totp, "token.expiresAt", string>;

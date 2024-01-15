@@ -1,6 +1,6 @@
 import { conform, useForm } from "@conform-to/react";
 import { LoaderFunctionArgs, json } from "@remix-run/node";
-import { useFetcher, useLoaderData } from "@remix-run/react";
+import { Link, useFetcher, useLoaderData } from "@remix-run/react";
 import { useId, useMemo } from "react";
 import { InputWithError } from "~/components/form/input-with-error";
 import { FormError } from "~/components/form/form-error";
@@ -9,9 +9,11 @@ import { authenticator, generateWebauthnOptions } from "~/lib/auth/auth.server";
 import { submissionSchema } from "~/lib/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { z } from "zod";
-import { authSessionStorage } from "~/lib/auth/session.server";
-import { getDatabaseInstance } from "~/lib/db.server";
-import { isTotpActive } from "~/models/totp";
+import {
+  authenticatorSessionKeys,
+  typedAuthSessionStorage,
+} from "~/lib/auth/session.server";
+import { getTotp } from "~/models/totp";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { MailCheck } from "lucide-react";
 import {
@@ -19,16 +21,16 @@ import {
   handleFormSubmit,
 } from "~/lib/auth/strategies/authn/helpers";
 import type { WebAuthnOptionsResponse } from "remix-auth-webauthn";
+import { Label } from "~/components/ui/label";
 
-const authMethodSchema = z.preprocess(
+const AuthMethodSchema = z.preprocess(
   method => (method === "otp" ? "totp" : method),
-  z.enum(["creds", "totp"]).catch("creds"),
+  z.enum(["creds", "totp", "authn"]).catch("creds"),
 );
 
-async function isValidTotp(hash: string) {
-  const db = await getDatabaseInstance();
-  const [valid] = await db.query<boolean>(isTotpActive, { hash });
-  return valid;
+async function isValidTotp(otp: string) {
+  const totp = await getTotp(otp);
+  return !!totp && totp.active;
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -38,21 +40,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   // Authentication method
   const searchParams = new URL(request.url).searchParams;
-  const method = authMethodSchema.parse(searchParams.get("method"));
+  const method = AuthMethodSchema.parse(searchParams.get("method"));
 
   // Whether user has active OTP
-  const authSession = await authSessionStorage.getSession(
+  const authSession = await typedAuthSessionStorage.getSession(
     request.headers.get("cookie"),
   );
-  const authEmail = authSession.has("auth:email")
-    ? String(authSession.get("auth:email"))
-    : undefined;
-  const authTotp = authSession.get("auth:totp");
+  const authEmail = authSession.get("email");
+  const authOtp = authSession.get("otp");
   let totpValid = false;
-  if (authTotp) {
-    totpValid = await isValidTotp(authTotp);
+  if (authOtp && authEmail) {
+    totpValid = await isValidTotp(authOtp);
   }
-  const sessionError = authSession.get(authenticator.sessionErrorKey);
+  const sessionError = authSession.get(
+    authenticatorSessionKeys.sessionErrorKey,
+  );
 
   // WebAuthn Options
   const optionsResponse = await generateWebauthnOptions(request, null);
@@ -75,8 +77,13 @@ export default function SignInPage() {
   return (
     <div className="flex h-full flex-col items-center overflow-y-auto">
       <section className="mt-[15vh] flex min-w-[28rem] max-w-3xl flex-col items-center rounded-xl px-8 pb-12 pt-10 shadow-lg ring-1 ring-inset ring-slate-100">
-        <h1 className="mb-8 font-display font-semibold">Sign In</h1>
-        <Tabs className="w-full" defaultValue={method}>
+        <h1 className="font-display font-semibold">Sign In</h1>
+        <Tabs
+          className="mt-8 w-full"
+          defaultValue={
+            webauthnSupported || method !== "authn" ? method : "creds"
+          }
+        >
           <TabsList className="mb-6 flex w-full">
             <TabsTrigger className="flex-1" value="creds">
               Credentials
@@ -84,35 +91,37 @@ export default function SignInPage() {
             <TabsTrigger className="flex-1" value="totp">
               OTP
             </TabsTrigger>
+            {webauthnSupported ? (
+              <TabsTrigger className="flex-1" value="authn">
+                Passkey
+              </TabsTrigger>
+            ) : null}
           </TabsList>
           <TabsContent value="creds">
             <CredentialsSignInForm />
           </TabsContent>
           <TabsContent value="totp">
             {totpValid ? (
-              <TotpVerifyForm email={authEmail} />
+              <TotpVerifyForm email={authEmail || undefined} />
             ) : (
-              <TotpSignInForm error={sessionError} />
+              <TotpSignInForm error={sessionError || undefined} />
             )}
           </TabsContent>
+          {webauthnSupported ? (
+            <TabsContent value="authn">
+              <WebAuthnSignInForm options={webauthnOptions} />
+            </TabsContent>
+          ) : null}
         </Tabs>
-
-        {webauthnSupported ? (
-          <>
-            <div className="relative my-5">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or
-                </span>
-              </div>
-            </div>
-
-            <WebAuthnSignInForm options={webauthnOptions} />
-          </>
-        ) : null}
+        <div className="muted mt-8 text-xs">
+          Don't have an account?{" "}
+          <Link
+            to="/signup"
+            className="font-medium text-slate-800 hover:underline dark:text-slate-200"
+          >
+            Register
+          </Link>
+        </div>
       </section>
     </div>
   );
@@ -143,19 +152,27 @@ function CredentialsSignInForm() {
           errorId={username.errorId}
           {...conform.input(username)}
         />
-        <InputWithError
-          label="Password"
-          error={password.error}
-          errorId={password.errorId}
-          {...conform.input(password, { type: "password" })}
-        />
+        <div className="grid gap-1">
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor={password.id}>Password</Label>
+            <Link to="/forgot-password" className="muted text-xs">
+              Forgot your password?
+            </Link>
+          </div>
+          <InputWithError
+            error={password.error}
+            errorId={password.errorId}
+            {...conform.input(password, { type: "password" })}
+          />
+        </div>
         <Button>Login to your account</Button>
       </div>
     </auth.Form>
   );
 }
 
-function TotpSignInForm({ error }: { error?: Error }) {
+function TotpSignInForm({ error }: { error?: { message: string } }) {
+  console.warn("Session error:", error?.message);
   const auth = useFetcher();
   const submission = useMemo(
     () => (auth.data ? submissionSchema.parse(auth.data) : undefined),
@@ -176,7 +193,7 @@ function TotpSignInForm({ error }: { error?: Error }) {
       action="/auth/totp/login"
       className="w-full"
     >
-      <FormError error={error?.message || form.error} className="mb-4" />
+      <FormError error={form.error} className="mb-4" />
       <div className="grid gap-6">
         <InputWithError
           label="Email"
@@ -199,7 +216,7 @@ function TotpVerifyForm({ email }: { email?: string }) {
     () => (auth.data ? submissionSchema.parse(auth.data) : undefined),
     [auth.data],
   );
-  const [form, { code }] = useForm({
+  const [form, { otp }] = useForm({
     id: formId,
     lastSubmission: submission,
     fallbackNative: true,
@@ -235,9 +252,9 @@ function TotpVerifyForm({ email }: { email?: string }) {
         <div className="grid gap-6">
           <InputWithError
             label="Enter OTP code"
-            error={code.error}
-            errorId={code.errorId}
-            {...conform.input(code)}
+            error={otp.error}
+            errorId={otp.errorId}
+            {...conform.input(otp)}
           />
           <Button disabled={isRefreshing || auth.state === "submitting"}>
             Submit
@@ -264,12 +281,7 @@ function WebAuthnSignInForm({ options }: { options: WebAuthnOptionsResponse }) {
       action="/auth/authn/login"
       className="w-full"
     >
-      <Button
-        variant="outline"
-        name="intent"
-        value="authentication"
-        className="w-full"
-      >
+      <Button name="intent" value="authentication" className="w-full">
         Sign-in with device/passkey
       </Button>
     </auth.Form>
