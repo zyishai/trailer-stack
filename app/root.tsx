@@ -1,5 +1,6 @@
 import customFontStyles from "~/styles/fonts.css";
 import globalStyles from "~/styles/styles.css";
+import remixDevToolsStyles from "remix-development-tools/index.css";
 import {
   json,
   type LinksFunction,
@@ -28,6 +29,9 @@ export const links: LinksFunction = () => [
   { rel: "preload", href: globalStyles, as: "style" },
   { rel: "stylesheet", href: customFontStyles },
   { rel: "stylesheet", href: globalStyles },
+  ...(process.env.NODE_ENV === "development"
+    ? [{ rel: "stylesheet", href: remixDevToolsStyles }]
+    : []),
   {
     rel: "apple-touch-icon",
     sizes: "180x180",
@@ -64,7 +68,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   });
 };
 
-export default function App() {
+let App = () => {
   const theme = useTheme();
   const { backgroundClassName } = useLayoutInfo();
 
@@ -88,4 +92,11 @@ export default function App() {
       </body>
     </html>
   );
+};
+
+if (process.env.NODE_ENV === "development") {
+  const { withDevTools } = await import("remix-development-tools");
+  App = withDevTools(App);
 }
+
+export default App;
