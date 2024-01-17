@@ -8,6 +8,7 @@ import {
   json,
   redirect,
 } from "@remix-run/node";
+import capitalize from "capitalize";
 import { AuthorizationError } from "remix-auth";
 import { Strategies, authenticator } from "~/lib/auth/auth.server";
 import { LoginSchema } from "~/lib/auth/strategies/creds/schema";
@@ -39,7 +40,12 @@ export const action = (async ({ request }) => {
         {
           ...submission,
           error: {
-            "": [error.message],
+            "": [
+              capitalize(
+                error.message.replace(/^server error:/i, "").trim(),
+                true,
+              ),
+            ],
           },
         },
         {

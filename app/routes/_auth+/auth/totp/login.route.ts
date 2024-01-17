@@ -1,5 +1,6 @@
 import { parse } from "@conform-to/zod";
 import { type ActionFunctionArgs, json } from "@remix-run/node";
+import capitalize from "capitalize";
 import { AuthorizationError } from "remix-auth";
 import { redirectBack } from "remix-utils/redirect-back";
 import { Strategies, authenticator } from "~/lib/auth/auth.server";
@@ -35,7 +36,12 @@ export async function action({ request }: ActionFunctionArgs) {
         {
           ...submission,
           error: {
-            "": [error.message],
+            "": [
+              capitalize(
+                error.message.replace(/^server error:/i, "").trim(),
+                true,
+              ),
+            ],
           },
         },
         {
