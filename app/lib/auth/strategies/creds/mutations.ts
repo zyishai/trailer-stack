@@ -45,11 +45,7 @@ const signup = async (
     LET $users = SELECT * FROM user WHERE username = $username OR email = $email;
 
     RETURN IF $users[0].id {
-        IF $users[0].username = $username {
-          NULL
-        } ELSE {
-          NULL
-        }
+        NULL
     } ELSE {
         LET $user = CREATE ONLY user SET username = $username, email = $email;
 
