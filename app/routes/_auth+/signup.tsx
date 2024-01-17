@@ -38,6 +38,7 @@ export default function SignUpPage() {
           className="w-full"
         >
           <FormError error={form.error} className="mb-4" />
+          <input type="hidden" name="intent" value="register" />
           <div className="grid gap-6">
             <div className="flex items-start gap-6">
               <InputWithError

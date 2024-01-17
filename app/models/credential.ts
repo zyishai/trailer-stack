@@ -8,7 +8,7 @@ export const CredentialTableSchema = /* surrealql */`
 
   -- Fields
 
-  DEFINE FIELD user_id ON credential TYPE record<user>;
+  DEFINE FIELD user ON credential TYPE record<user>;
 
   DEFINE FIELD password ON credential TYPE string
     VALUE crypto::argon2::generate($value);
@@ -17,7 +17,7 @@ export const CredentialTableSchema = /* surrealql */`
 
   -- Indexes
 
-  DEFINE INDEX user_id ON credential FIELDS user_id UNIQUE;
+  DEFINE INDEX user ON credential FIELDS user UNIQUE;
 `;
 
 export const updateCredential = async (userId: string, password: Password) => {

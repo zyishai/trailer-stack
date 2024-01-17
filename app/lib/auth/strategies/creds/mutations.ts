@@ -14,7 +14,7 @@ const signin = async (username: Username, password: Password) => {
     LET $users = SELECT * FROM user WHERE username = $username;
 
     RETURN IF $users[0].id {
-      LET $credentials = SELECT * FROM credential WHERE user_id = $users[0].id AND crypto::argon2::compare(password, $password);
+      LET $credentials = SELECT * FROM credential WHERE user = $users[0].id AND crypto::argon2::compare(password, $password);
 
       RETURN IF $credentials[0].id {
         $users[0]
@@ -50,7 +50,7 @@ const signup = async (
         LET $user = CREATE ONLY user SET username = $username, email = $email;
 
         -- Don't worry! On the table we hash the password using crypto::argon2::generate hashing function
-        CREATE ONLY credential SET user_id = $user.id, password = $password;
+        CREATE ONLY credential SET user = $user.id, password = $password;
 
         RETURN $user;
     };
