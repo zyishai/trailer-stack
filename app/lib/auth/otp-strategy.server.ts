@@ -12,7 +12,7 @@ import type { Totp } from "~/models/totp";
 import { User } from "~/models/user";
 import { encryptOTP, generateOTP, verifyOTP } from "../otp.server";
 import { getDomain } from "../misc";
-import { typedAuthSessionStorage } from "./session.server";
+import { getAuthSession } from "./session.server";
 
 const ContextSchema = z
   .object({ email: EmailAddress })
@@ -107,15 +107,12 @@ export class OTPStrategy extends Strategy<User, TOTPVerifyParams> {
         );
         await this.sendEmail({ to: email, otp, verificationLink: magicLink });
 
-        const authSession = await typedAuthSessionStorage.getSession(
-          request.headers.get("cookie"),
-        );
-        authSession.set("otp", encryptedOtp);
-        authSession.set("email", email);
+        const authSession = await getAuthSession(request);
+        authSession.session.set("otp", encryptedOtp);
+        authSession.session.set("email", email);
         throw redirect(options.successRedirect, {
           headers: {
-            "Set-Cookie":
-              await typedAuthSessionStorage.commitSession(authSession),
+            "Set-Cookie": await authSession.commit(),
           },
         });
       } else {

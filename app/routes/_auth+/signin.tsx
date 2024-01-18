@@ -9,11 +9,7 @@ import { authenticator, generateWebauthnOptions } from "~/lib/auth/auth.server";
 import { submissionSchema } from "~/lib/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { z } from "zod";
-import {
-  authSessionStorage,
-  authenticatorSessionKeys,
-  typedAuthSessionStorage,
-} from "~/lib/auth/session.server";
+import { getAuthSession } from "~/lib/auth/session.server";
 import { getTotp } from "~/models/totp";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { MailCheck } from "lucide-react";
@@ -37,10 +33,8 @@ async function isValidTotp(otp: string) {
 export async function loader({ request }: LoaderFunctionArgs) {
   // For some weird reason, if I read the session on the _index route, and pass to `isAuthenticate`
   // the request object, it throws an error, so I pass the (untyped) session object instead.
-  const session = await authSessionStorage.getSession(
-    request.headers.get("cookie"),
-  );
-  await authenticator.isAuthenticated(session, {
+  const untypedSession = await getAuthSession(request, { typed: false });
+  await authenticator.isAuthenticated(untypedSession.session, {
     successRedirect: "/",
   });
 
@@ -49,18 +43,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const method = AuthMethodSchema.parse(searchParams.get("method"));
 
   // Whether user has active OTP
-  const authSession = await typedAuthSessionStorage.getSession(
-    request.headers.get("cookie"),
-  );
+  const { session: authSession } = await getAuthSession(request);
   const authEmail = authSession.get("email");
   const authOtp = authSession.get("otp");
   let totpValid = false;
   if (authOtp && authEmail) {
     totpValid = await isValidTotp(authOtp);
   }
-  const sessionError = authSession.get(
-    authenticatorSessionKeys.sessionErrorKey,
-  );
+  const sessionError = authSession.get("auth:error");
 
   // WebAuthn Options
   const optionsResponse = await generateWebauthnOptions(request, null);

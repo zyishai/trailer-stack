@@ -14,7 +14,7 @@ import { FormError } from "~/components/form/form-error";
 import { InputWithError } from "~/components/form/input-with-error";
 import { Button } from "~/components/ui/button";
 import { authenticator } from "~/lib/auth/auth.server";
-import { typedAuthSessionStorage } from "~/lib/auth/session.server";
+import { getAuthSession } from "~/lib/auth/session.server";
 import { encryptOTP, verifyOTP } from "~/lib/otp.server";
 import { updateCredential } from "~/models/credential";
 import { Password } from "~/models/password";
@@ -67,18 +67,13 @@ export async function action({ request }: ActionFunctionArgs) {
     );
   }
 
-  const authSession = await typedAuthSessionStorage.getSession(
-    request.headers.get("cookie"),
-  );
-  authSession.unset("auth:error");
-  authSession.unset("email");
-  authSession.unset("otp");
-  authSession.unset("user");
+  const authSession = await getAuthSession(request);
+  authSession.clear();
 
   // Redirect to /signin
   throw redirect("/signin", {
     headers: {
-      "Set-Cookie": await typedAuthSessionStorage.commitSession(authSession),
+      "Set-Cookie": await authSession.commit(),
     },
   });
 }
@@ -114,19 +109,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw new Error("Server error: could not find user");
   }
 
-  const authSession = await typedAuthSessionStorage.getSession(
-    request.headers.get("cookie"),
-  );
-  authSession.unset("otp");
-  authSession.unset("email");
-  authSession.unset("user");
-  authSession.unset("auth:error");
+  const authSession = await getAuthSession(request);
+  authSession.clear();
 
   return json(
     { otp, userId: user.id },
     {
       headers: {
-        "Set-Cookie": await typedAuthSessionStorage.commitSession(authSession),
+        "Set-Cookie": await authSession.commit(),
       },
     },
   );

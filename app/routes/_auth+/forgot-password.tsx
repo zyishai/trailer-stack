@@ -12,7 +12,7 @@ import { InputWithError } from "~/components/form/input-with-error";
 import { Button } from "~/components/ui/button";
 import { authenticator } from "~/lib/auth/auth.server";
 import { parse } from "@conform-to/zod";
-import { typedAuthSessionStorage } from "~/lib/auth/session.server";
+import { getAuthSession } from "~/lib/auth/session.server";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { MailCheck } from "lucide-react";
 import { AuthorizationError } from "remix-auth";
@@ -63,14 +63,12 @@ export async function action({ request }: ActionFunctionArgs) {
       }),
     });
 
-    const authSession = await typedAuthSessionStorage.getSession(
-      request.headers.get("cookie"),
-    );
-    authSession.set("otp", encryptedOtp);
-    authSession.set("email", credentials.email);
+    const authSession = await getAuthSession(request);
+    authSession.session.set("otp", encryptedOtp);
+    authSession.session.set("email", credentials.email);
     throw redirect("/forgot-password", {
       headers: {
-        "Set-Cookie": await typedAuthSessionStorage.commitSession(authSession),
+        "Set-Cookie": await authSession.commit(),
       },
     });
   } catch (error: any) {
@@ -105,10 +103,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
   await authenticator.isAuthenticated(request, {
     successRedirect: "/",
   });
-  const authSession = await typedAuthSessionStorage.getSession(
-    request.headers.get("cookie"),
-  );
-  const otp = authSession.get("otp");
+  const authSession = await getAuthSession(request);
+  const otp = authSession.session.get("otp");
   return json({ otp, otpValid: !!otp && (await isOTPValid(otp)) });
 }
 
