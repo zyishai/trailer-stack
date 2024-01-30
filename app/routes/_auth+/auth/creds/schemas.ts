@@ -11,8 +11,16 @@ export const LoginSchema = z.object({
 
 export const RegisterSchema = z.object({
   intent: z.literal("register"),
-  username: Username,
-  password: Password,
+  username: z
+    .string()
+    .min(4, { message: "Username too short (need >4 letters)" })
+    .max(10, { message: "Username too long (need <10 letters)" })
+    .and(Username),
+  password: z
+    .string()
+    .min(6, { message: "Password too short (need >6 letters)" })
+    .max(10, { message: "Password too long (need <10 letters)" })
+    .and(Password),
   email: EmailAddress,
 });
 

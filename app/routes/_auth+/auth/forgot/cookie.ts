@@ -16,6 +16,7 @@ export const resetCookie = createTypedCookie({
       id: z.string().optional(),
       otp: z.string().optional(),
       expires: z.string().datetime().optional(),
+      userId: z.string().startsWith("user:").optional(), // Used to temporarily save the userId after token verification (see: loader in /reset-password route)
       error: z.string().optional(),
     })
     .nullable(),
@@ -39,5 +40,6 @@ export async function clearResetCookie(cookie: ResetCookie) {
   delete cookie.id;
   delete cookie.otp;
   delete cookie.expires;
+  delete cookie.userId;
   return resetCookie.serialize(cookie);
 }

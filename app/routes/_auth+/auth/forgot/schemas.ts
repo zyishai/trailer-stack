@@ -5,7 +5,6 @@ import { Password } from "~/models/password";
 export const ForgotPasswordSchema = z.object({ email: EmailAddress });
 export const ResetPasswordSchema = z
   .object({
-    userId: z.string().startsWith("user:"),
     password: Password,
     confirm: Password,
   })

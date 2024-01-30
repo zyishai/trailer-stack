@@ -13,6 +13,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
   if (token.isAuthenticated) {
     throw redirect("/");
   }
+
+  return null;
 }
 
 export default function SignUpPage() {

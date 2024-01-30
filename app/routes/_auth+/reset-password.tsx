@@ -6,7 +6,7 @@ import {
   json,
   redirect,
 } from "@remix-run/node";
-import { useFetcher, useLoaderData } from "@remix-run/react";
+import { useFetcher } from "@remix-run/react";
 import { useId } from "react";
 import { FormError } from "~/components/form/form-error";
 import { InputWithError } from "~/components/form/input-with-error";
@@ -35,17 +35,16 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   // Change password for the user
-  const { userId, password } = submission.value;
-  console.log(submission.value);
+  const { password } = submission.value;
+
+  const cookie = (await resetCookie.parse(request.headers.get("cookie"))) || {};
 
   try {
-    await updateCredential(userId, password);
-
-    const cookie =
-      (await resetCookie.parse(request.headers.get("cookie"))) || {};
-    if (!cookie.id || !cookie.otp) {
+    if (!cookie.id || !cookie.otp || !cookie.userId) {
       throw redirect("/");
     }
+
+    await updateCredential(cookie.userId, password);
 
     if (!(await deactivateTOTP(cookie.id))) {
       console.warn(
@@ -63,7 +62,7 @@ export async function action({ request }: ActionFunctionArgs) {
       throw error;
     } else {
       console.error(
-        `🔴 Failed to change password. User id ${userId}, New password: ${password}`,
+        `🔴 Failed to change password. User id ${cookie.userId}, New password: ${password}`,
       );
       return json({
         ...submission,
@@ -101,6 +100,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
 
     const totp = await verifyOTP(otpId, otp, cookie);
+    cookie.userId = totp.user.id;
     return json(
       {
         userId: totp.user.id,
@@ -129,7 +129,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function ResetPasswordPage() {
-  const { userId } = useLoaderData<typeof loader>();
   const auth = useFetcher<typeof action>();
   const formId = useId();
   const [form, { password, confirm }] = useForm({
@@ -153,7 +152,6 @@ export default function ResetPasswordPage() {
           className="w-full"
         >
           <FormError error={form.error} className="mb-4" />
-          <input type="hidden" name="userId" value={userId} />
           <div className="grid gap-6">
             <InputWithError
               type="password"
