@@ -16,7 +16,8 @@ const envSchema = z.object({
   DEV_MAIL_AUTH_PASS: z.string().optional(),
   EMAIL_TEMPLATES_DIR: z.string(),
   AUTH_COOKIE_SECRET: z.string().min(32 /* 16 bytes hex string */),
-  TOTP_ENCRYPTION_SECRET: z.string().min(32),
+  TOTP_COOKIE_ENCRYPTION_SECRET: z.string().min(32),
+  RESET_COOKIE_ENCRYPTION_SECRET: z.string().min(32),
   APP_NAME: z.string(),
   // add here more variables as needed
 });

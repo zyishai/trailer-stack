@@ -137,10 +137,17 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-
+  .arrows-hide::-webkit-outer-spin-button,
+  .arrows-hide::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
   /* For IE, Edge and Firefox */
   .scrollbar-hide {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
+  }
+  input[type=number].arrows-hide {
+    -moz-appearance: textfield;
   }
 }

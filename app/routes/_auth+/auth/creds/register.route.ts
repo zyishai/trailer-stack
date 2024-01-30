@@ -10,11 +10,17 @@ import {
   redirect,
 } from "@remix-run/node";
 import { AuthorizationError } from "remix-auth";
-import { Strategies, authenticator } from "~/lib/auth/auth.server";
-import { RegisterSchema } from "~/lib/auth/strategies/creds/schema";
-import { getSubmission } from "~/lib/form";
+import { RegisterSchema } from "./schemas";
+import { signup } from "./signup";
+import { AuthToken } from "~/lib/session.server";
+import capitalize from "capitalize";
 
 export const action = (async ({ request }) => {
+  const authToken = await AuthToken.get(request);
+  if (authToken.isAuthenticated) {
+    throw redirect("/");
+  }
+
   const formData = await request.formData();
   const submission = await parse(formData, {
     schema: RegisterSchema,
@@ -29,10 +35,22 @@ export const action = (async ({ request }) => {
   const credentials = submission.value;
 
   try {
-    return await authenticator.authenticate(Strategies.Credentials, request, {
-      successRedirect: "/",
-      throwOnError: true,
-      context: { formData, credentials },
+    const { username, password, email } = credentials;
+    const user = await signup(username, password, email);
+    if (!user) {
+      console.error(
+        `🚨 Failed to sign up with credentials: ${JSON.stringify(
+          credentials,
+          null,
+          2,
+        )}. Expected: user object, Got: ${user}`,
+      );
+      throw new AuthorizationError("Username or email are taken");
+    }
+
+    return await authToken.upgrade({
+      userId: user.id,
+      redirectTo: "/",
     });
   } catch (error: any) {
     if (error instanceof Response) {
@@ -42,17 +60,24 @@ export const action = (async ({ request }) => {
         {
           ...submission,
           error: {
-            "": [error.message],
+            "": [capitalize(error.message.trim(), true)],
           },
         },
         {
-          status: error.message.toLowerCase().includes("server error")
-            ? 500
-            : 400,
+          status: 400,
         },
       );
     } else {
-      return json(getSubmission(error, formData), { status: 500 });
+      console.error(`🔴 Registration failed: ${error}`);
+      return json(
+        {
+          ...submission,
+          error: {
+            "": ["Unknown server error"],
+          },
+        },
+        { status: 500 },
+      );
     }
   }
 }) satisfies ActionFunction;

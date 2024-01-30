@@ -2,22 +2,23 @@ import { conform, useForm } from "@conform-to/react";
 import { Link, useFetcher } from "@remix-run/react";
 import { useId, useMemo } from "react";
 import { Button } from "~/components/ui/button";
-import { submissionSchema } from "~/lib/form";
 import { FormError } from "~/components/form/form-error";
 import { InputWithError } from "~/components/form/input-with-error";
-import { LoaderFunctionArgs } from "@remix-run/node";
-import { authenticator } from "~/lib/auth/auth.server";
+import { LoaderFunctionArgs, redirect } from "@remix-run/node";
+import { AuthToken } from "~/lib/session.server";
+import { SubmissionSchema } from "~/models/submission";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  return await authenticator.isAuthenticated(request, {
-    successRedirect: "/",
-  });
+  const token = await AuthToken.get(request);
+  if (token.isAuthenticated) {
+    throw redirect("/");
+  }
 }
 
 export default function SignUpPage() {
   const auth = useFetcher();
   const submission = useMemo(
-    () => (auth.data ? submissionSchema.parse(auth.data) : undefined),
+    () => (auth.data ? SubmissionSchema.parse(auth.data) : undefined),
     [auth.data],
   );
   const formId = useId();

@@ -1,5 +1,5 @@
 /**
- * This is taken from remix-utils@v6
+ * This is adopted from remix-utils@v6
  * @link https://github.com/sergiodxa/remix-utils/blob/v6.6.0/src/server/responses.ts
  */
 

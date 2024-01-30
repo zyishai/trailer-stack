@@ -55,7 +55,7 @@ export function RootLayout({ children }: React.PropsWithChildren) {
       {showFooter ? (
         <footer className="px-8 py-6 sm:py-4">
           <div className="flex flex-col items-center justify-between sm:flex-row">
-            <p className="muted">
+            <p className="muted font-light">
               &copy; {new Date().getFullYear()} Trailer Stack
             </p>
 

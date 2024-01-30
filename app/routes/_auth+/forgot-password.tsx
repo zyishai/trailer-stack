@@ -1,7 +1,7 @@
 import { conform, useForm } from "@conform-to/react";
 import {
-  ActionFunctionArgs,
-  LoaderFunctionArgs,
+  type ActionFunctionArgs,
+  type LoaderFunctionArgs,
   json,
   redirect,
 } from "@remix-run/node";
@@ -10,65 +10,68 @@ import { useId } from "react";
 import { FormError } from "~/components/form/form-error";
 import { InputWithError } from "~/components/form/input-with-error";
 import { Button } from "~/components/ui/button";
-import { authenticator } from "~/lib/auth/auth.server";
 import { parse } from "@conform-to/zod";
-import { getAuthSession } from "~/lib/auth/session.server";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { MailCheck } from "lucide-react";
 import { AuthorizationError } from "remix-auth";
-import { getSubmission } from "~/lib/form";
-import { createTotp, getTotp } from "~/models/totp";
+import capitalize from "capitalize";
+import { AuthToken } from "~/lib/session.server";
 import { getUserByEmailAddress } from "~/models/user";
-import { encryptOTP, generateOTP } from "~/lib/otp.server";
+import { generateTOTP } from "@epic-web/totp";
+import { createTOTP } from "~/models/totp";
 import { getDomain } from "~/lib/misc";
 import { sendEmail } from "~/lib/email.server";
 import ResetPasswordTemplate from "~/components/emails/reset-password";
-import { z } from "zod";
-import { EmailAddress } from "~/models/email";
+import { resetCookie, setResetCookie } from "./auth/forgot/cookie";
+import { ForgotPasswordSchema } from "./auth/forgot/schemas";
 
-const ResetPasswordSchema = z.object({ email: EmailAddress });
 export async function action({ request }: ActionFunctionArgs) {
-  const formData = await request.formData();
+  const token = await AuthToken.get(request);
+  if (token.isAuthenticated) {
+    throw redirect("/");
+  }
 
-  // Parse email address
+  const formData = await request.formData();
   const submission = await parse(formData, {
-    schema: ResetPasswordSchema,
+    schema: ForgotPasswordSchema,
     async: true,
   });
+
   if (!submission.value) {
     return json(submission, { status: 400 });
   }
-  const credentials = submission.value;
+  const emailAddress = submission.value.email;
+
+  const cookie = (await resetCookie.parse(request.headers.get("cookie"))) || {};
 
   try {
-    const user = await getUserByEmailAddress(credentials.email);
+    const user = await getUserByEmailAddress(emailAddress);
     if (!user) {
-      throw new Error("Server error: could not find user");
+      throw new AuthorizationError("User not found");
     }
 
-    const { otp, payload } = await generateOTP({ email: credentials.email });
-    const encryptedOtp = await encryptOTP(otp);
-    const totp = await createTotp(encryptedOtp, payload);
-    if (!totp) {
-      throw new Error("Server error: failed to generate OTP code");
-    }
-
-    const verificationLink = getDomain(request, `/reset-password?code=${otp}`);
+    const { otp, ...payload } = generateTOTP();
+    const totp = await createTOTP(payload, user.id);
+    const verificationLink = getDomain(
+      request,
+      `/reset-password?code=${otp}&id=${totp.id}`,
+    );
     await sendEmail({
-      to: credentials.email,
+      to: emailAddress,
       subject: "Reset your password",
       email: ResetPasswordTemplate({
         verificationLink,
-        contactLink: "mailto:contact@trailer.stack",
+        contactLink: "mailto:help@trailer.stack",
       }),
     });
 
-    const authSession = await getAuthSession(request);
-    authSession.session.set("otp", encryptedOtp);
-    authSession.session.set("email", credentials.email);
     throw redirect("/forgot-password", {
       headers: {
-        "Set-Cookie": await authSession.commit(),
+        "Set-Cookie": await setResetCookie(cookie, {
+          id: totp.id,
+          expires: totp.expires,
+          otp,
+        }),
       },
     });
   } catch (error: any) {
@@ -79,37 +82,59 @@ export async function action({ request }: ActionFunctionArgs) {
         {
           ...submission,
           error: {
-            "": [error.message],
+            "": [capitalize(error.message.trim(), true)],
           },
         },
         {
-          status: error.message.toLowerCase().includes("server error")
-            ? 500
-            : 400,
+          status: 400,
+          headers: [["Set-Cookie", await resetCookie.serialize(cookie)]],
         },
       );
     } else {
-      return json(getSubmission(error, formData), { status: 500 });
+      console.error(
+        `🔴 Failed to generate token for reset password request: ${error}`,
+      );
+      return json(
+        {
+          ...submission,
+          error: {
+            "": ["Unknown server error"],
+          },
+        },
+        {
+          status: 500,
+          headers: [["Set-Cookie", await resetCookie.serialize(cookie)]],
+        },
+      );
     }
   }
 }
 
-async function isOTPValid(otp: string) {
-  const totp = await getTotp(otp);
-  return !!totp && totp.active;
-}
-
 export async function loader({ request }: LoaderFunctionArgs) {
-  await authenticator.isAuthenticated(request, {
-    successRedirect: "/",
-  });
-  const authSession = await getAuthSession(request);
-  const otp = authSession.session.get("otp");
-  return json({ otp, otpValid: !!otp && (await isOTPValid(otp)) });
+  const token = await AuthToken.get(request);
+  if (token.isAuthenticated) {
+    throw redirect("/");
+  }
+
+  const cookie = (await resetCookie.parse(request.headers.get("cookie"))) || {};
+  const otpError = cookie.error;
+  delete cookie.error;
+
+  const hasActiveOTP =
+    !!cookie.otp && !!cookie.expires && new Date() < new Date(cookie.expires);
+
+  return json(
+    { hasActiveOTP, otpError },
+    {
+      headers: {
+        "Set-Cookie": await resetCookie.serialize(cookie),
+      },
+    },
+  );
 }
 
 export default function ForgotPasswordPage() {
-  const { otpValid } = useLoaderData<typeof loader>();
+  const { hasActiveOTP } = useLoaderData<typeof loader>();
   const auth = useFetcher<typeof action>();
   const formId = useId();
   const [form, { email }] = useForm({
@@ -128,7 +153,7 @@ export default function ForgotPasswordPage() {
             <br /> to reset your password
           </p>
         </div>
-        {!otpValid ? (
+        {!hasActiveOTP ? (
           <auth.Form
             {...form.props}
             method="post"

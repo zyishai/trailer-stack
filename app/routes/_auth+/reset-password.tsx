@@ -8,35 +8,24 @@ import {
 } from "@remix-run/node";
 import { useFetcher, useLoaderData } from "@remix-run/react";
 import { useId } from "react";
-import { AuthorizationError } from "remix-auth";
-import { z } from "zod";
 import { FormError } from "~/components/form/form-error";
 import { InputWithError } from "~/components/form/input-with-error";
 import { Button } from "~/components/ui/button";
-import { authenticator } from "~/lib/auth/auth.server";
-import { getAuthSession } from "~/lib/auth/session.server";
-import { encryptOTP, verifyOTP } from "~/lib/otp.server";
 import { updateCredential } from "~/models/credential";
-import { Password } from "~/models/password";
-import { deleteTotp, getTotp, updateTotp } from "~/models/totp";
-import { getUserByEmailAddress } from "~/models/user";
+import { ResetPasswordSchema } from "./auth/forgot/schemas";
+import { AuthToken } from "~/lib/session.server";
+import invariant from "tiny-invariant";
+import { clearResetCookie, resetCookie } from "./auth/forgot/cookie";
+import { verifyOTP } from "./auth/forgot/verify";
+import { AuthorizationError } from "remix-auth";
+import { deactivateTOTP } from "~/models/totp";
 
-const ResetPasswordSchema = z
-  .object({
-    userId: z.string().startsWith("user:"),
-    password: Password,
-    confirm: Password,
-  })
-  .superRefine(({ password, confirm }, ctx) => {
-    if (password !== confirm) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Passwords do not match",
-        path: ["confirm"],
-      });
-    }
-  });
 export async function action({ request }: ActionFunctionArgs) {
+  const token = await AuthToken.get(request);
+  if (token.isAuthenticated) {
+    throw redirect("/");
+  }
+
   const formData = await request.formData();
 
   // Parse payload
@@ -47,79 +36,96 @@ export async function action({ request }: ActionFunctionArgs) {
 
   // Change password for the user
   const { userId, password } = submission.value;
-  const credential = await updateCredential(userId, password);
-  if (!credential) {
-    console.warn(
-      `⚠️ Failed to update user credentials: ${JSON.stringify(
-        { userId, password },
-        null,
-        2,
-      )}`,
-    );
-    return json(
-      {
+  console.log(submission.value);
+
+  try {
+    await updateCredential(userId, password);
+
+    const cookie =
+      (await resetCookie.parse(request.headers.get("cookie"))) || {};
+    if (!cookie.id || !cookie.otp) {
+      throw redirect("/");
+    }
+
+    if (!(await deactivateTOTP(cookie.id))) {
+      console.warn(
+        `🟠 Failed to deactivate OTP after request to another OTP was made. OTP id: ${cookie.id}, OTP value: ${cookie.otp}`,
+      );
+    }
+
+    throw redirect("/signin", {
+      headers: {
+        "Set-Cookie": await clearResetCookie(cookie),
+      },
+    });
+  } catch (error: any) {
+    if (error instanceof Response) {
+      throw error;
+    } else {
+      console.error(
+        `🔴 Failed to change password. User id ${userId}, New password: ${password}`,
+      );
+      return json({
         ...submission,
         error: {
-          "": ["Failed to update password"],
+          "": ["Unknown server error "],
         },
-      },
-      { status: 500 },
-    );
+      });
+    }
   }
-
-  const authSession = await getAuthSession(request);
-  authSession.clear();
-
-  // Redirect to /signin
-  throw redirect("/signin", {
-    headers: {
-      "Set-Cookie": await authSession.commit(),
-    },
-  });
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
-  // Redirect signed-in users
-  await authenticator.isAuthenticated(request, {
-    successRedirect: "/",
-  });
-
-  // Parse params
-  const otp = new URL(request.url).searchParams.get("code");
-  if (!otp) {
-    throw new AuthorizationError("Invalid OTP code");
+export async function loader({ request }: LoaderFunctionArgs) {
+  const token = await AuthToken.get(request);
+  if (token.isAuthenticated) {
+    throw redirect("/");
   }
 
-  const encryptedOtp = await encryptOTP(otp);
-  const totp = await getTotp(encryptedOtp);
-  if (!totp || !totp.active) {
-    throw new AuthorizationError("Invalid OTP code");
-  }
+  const cookie = (await resetCookie.parse(request.headers.get("cookie"))) || {};
 
-  const payload = await verifyOTP({ otp, payload: totp.hash });
-  if (!payload) {
-    throw new AuthorizationError("Invalid OTP code");
-  }
+  try {
+    const searchParams = new URL(request.url).searchParams;
+    const otpId = searchParams.get("id");
+    const otp = searchParams.get("code");
+    invariant(otpId, () => {
+      console.warn(
+        `🟠 Invalid reset password verification link: missing OTP id (?id=...) from search parameters`,
+      );
+      return "Invalid verification link";
+    });
+    invariant(otp, () => {
+      console.warn(
+        `🟠 Invalid reset password verification link: missing OTP code (?code=...) from search parameters`,
+      );
+      return "Invalid verification link";
+    });
 
-  await updateTotp(totp.id, { active: false });
-  await deleteTotp(totp.id);
-
-  const user = await getUserByEmailAddress(payload.email);
-  if (!user) {
-    throw new Error("Server error: could not find user");
-  }
-
-  const authSession = await getAuthSession(request);
-  authSession.clear();
-
-  return json(
-    { otp, userId: user.id },
-    {
-      headers: {
-        "Set-Cookie": await authSession.commit(),
+    const totp = await verifyOTP(otpId, otp, cookie);
+    return json(
+      {
+        userId: totp.user.id,
       },
-    },
-  );
+      {
+        headers: {
+          "Set-Cookie": await resetCookie.serialize(cookie),
+        },
+      },
+    );
+  } catch (error: any) {
+    if (error instanceof Response) {
+      throw error;
+    } else {
+      cookie.error =
+        error instanceof AuthorizationError
+          ? error.message
+          : "Unknown server error";
+      throw redirect("/signin?method=creds", {
+        headers: {
+          "Set-Cookie": await resetCookie.serialize(cookie),
+        },
+      });
+    }
+  }
 }
 
 export default function ResetPasswordPage() {
@@ -150,13 +156,15 @@ export default function ResetPasswordPage() {
           <input type="hidden" name="userId" value={userId} />
           <div className="grid gap-6">
             <InputWithError
-              label="Password"
+              type="password"
+              label="New assword"
               error={password.error}
               errorId={password.errorId}
               {...conform.input(password)}
             />
             <InputWithError
-              label="Confirm password"
+              type="password"
+              label="Confirm new password"
               error={confirm.error}
               errorId={confirm.errorId}
               {...conform.input(confirm)}

@@ -1,85 +1,62 @@
 import { conform, useForm } from "@conform-to/react";
-import { LoaderFunctionArgs, json } from "@remix-run/node";
+import { LoaderFunctionArgs, json, redirect } from "@remix-run/node";
 import { Link, useFetcher, useLoaderData } from "@remix-run/react";
 import { useId, useMemo } from "react";
 import { InputWithError } from "~/components/form/input-with-error";
 import { FormError } from "~/components/form/form-error";
 import { Button } from "~/components/ui/button";
-import { authenticator, generateWebauthnOptions } from "~/lib/auth/auth.server";
-import { submissionSchema } from "~/lib/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { z } from "zod";
-import { getAuthSession } from "~/lib/auth/session.server";
-import { getTotp } from "~/models/totp";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
-import { MailCheck } from "lucide-react";
-import {
-  browserSupportsWebAuthn,
-  handleFormSubmit,
-} from "~/lib/auth/strategies/authn/helpers";
-import type { WebAuthnOptionsResponse } from "remix-auth-webauthn";
 import { Label } from "~/components/ui/label";
+import { AuthToken } from "~/lib/session.server";
+import { otpCookie } from "./auth/totp/cookie";
+import { resetCookie } from "./auth/forgot/cookie";
+import { SubmissionSchema } from "~/models/submission";
 
 const AuthMethodSchema = z.preprocess(
   method => (method === "otp" ? "totp" : method),
-  z.enum(["creds", "totp", "authn"]).catch("creds"),
+  z.enum(["creds", "totp"]).catch("creds"),
 );
 
-async function isValidTotp(otp: string) {
-  const totp = await getTotp(otp);
-  return !!totp && totp.active;
-}
-
 export async function loader({ request }: LoaderFunctionArgs) {
-  // For some weird reason, if I read the session on the _index route, and pass to `isAuthenticate`
-  // the request object, it throws an error, so I pass the (untyped) session object instead.
-  const untypedSession = await getAuthSession(request, { typed: false });
-  await authenticator.isAuthenticated(untypedSession.session, {
-    successRedirect: "/",
-  });
+  const token = await AuthToken.get(request);
+  if (token.isAuthenticated) {
+    throw redirect("/");
+  }
 
   // Authentication method
   const searchParams = new URL(request.url).searchParams;
   const method = AuthMethodSchema.parse(searchParams.get("method"));
 
-  // Whether user has active OTP
-  const { session: authSession } = await getAuthSession(request);
-  const authEmail = authSession.get("email");
-  const authOtp = authSession.get("otp");
-  let totpValid = false;
-  if (authOtp && authEmail) {
-    totpValid = await isValidTotp(authOtp);
-  }
-  const sessionError = authSession.get("auth:error");
-
-  // WebAuthn Options
-  const optionsResponse = await generateWebauthnOptions(request, null);
-  const webauthnOptions = await optionsResponse.json();
+  // Read OTP cookie error, if exists
+  const cookieOtp =
+    (await otpCookie.parse(request.headers.get("cookie"))) || {};
+  const cookieReset =
+    (await resetCookie.parse(request.headers.get("cookie"))) || {};
+  const otpError = cookieOtp.error;
+  const resetError = cookieReset.error;
+  delete cookieOtp.error;
+  delete cookieReset.error;
 
   return json(
-    { method, authEmail, totpValid, sessionError, webauthnOptions },
+    { method, otpError, resetError },
     {
-      headers: optionsResponse.headers,
+      headers: [
+        ["Set-Cookie", await otpCookie.serialize(cookieOtp)],
+        ["Set-Cookie", await resetCookie.serialize(cookieReset)],
+      ],
     },
   );
 }
 
 export default function SignInPage() {
-  const { method, authEmail, totpValid, sessionError, webauthnOptions } =
-    useLoaderData<typeof loader>();
-  const webauthnSupported =
-    typeof document !== "undefined" ? browserSupportsWebAuthn() : true;
+  const { method } = useLoaderData<typeof loader>();
 
   return (
     <div className="flex h-full flex-col items-center overflow-y-auto">
       <section className="mt-[15vh] flex min-w-[28rem] max-w-3xl flex-col items-center rounded-xl px-8 pb-12 pt-10 shadow-lg ring-1 ring-inset ring-slate-100">
         <h1 className="font-display font-semibold">Sign In</h1>
-        <Tabs
-          className="mt-8 w-full"
-          defaultValue={
-            webauthnSupported || method !== "authn" ? method : "creds"
-          }
-        >
+        <Tabs className="mt-8 w-full" defaultValue={method}>
           <TabsList className="mb-6 flex w-full">
             <TabsTrigger className="flex-1" value="creds">
               Credentials
@@ -87,27 +64,13 @@ export default function SignInPage() {
             <TabsTrigger className="flex-1" value="totp">
               OTP
             </TabsTrigger>
-            {webauthnSupported ? (
-              <TabsTrigger className="flex-1" value="authn">
-                Passkey
-              </TabsTrigger>
-            ) : null}
           </TabsList>
           <TabsContent value="creds">
             <CredentialsSignInForm />
           </TabsContent>
           <TabsContent value="totp">
-            {totpValid ? (
-              <TotpVerifyForm email={authEmail || undefined} />
-            ) : (
-              <TotpSignInForm error={sessionError || undefined} />
-            )}
+            <TotpSignInForm />
           </TabsContent>
-          {webauthnSupported ? (
-            <TabsContent value="authn">
-              <WebAuthnSignInForm options={webauthnOptions} />
-            </TabsContent>
-          ) : null}
         </Tabs>
         <div className="muted mt-8 text-xs">
           Don't have an account?{" "}
@@ -124,9 +87,10 @@ export default function SignInPage() {
 }
 
 function CredentialsSignInForm() {
+  const { resetError } = useLoaderData<typeof loader>();
   const auth = useFetcher();
   const submission = useMemo(
-    () => (auth.data ? submissionSchema.parse(auth.data) : undefined),
+    () => (auth.data ? SubmissionSchema.parse(auth.data) : undefined),
     [auth.data],
   );
   const formId = useId();
@@ -138,7 +102,7 @@ function CredentialsSignInForm() {
 
   return (
     <auth.Form {...form.props} method="post" action="/auth/creds/login">
-      <FormError error={form.error} className="mb-4" />
+      <FormError error={form.error || resetError} className="mb-4" />
       <input type="hidden" name="intent" value="login" />{" "}
       {/* Very important! Otherwise, it'll fallback to "register" */}
       <div className="grid gap-6">
@@ -167,11 +131,11 @@ function CredentialsSignInForm() {
   );
 }
 
-function TotpSignInForm({ error }: { error?: { message: string } }) {
-  console.warn("Session error:", error?.message);
+function TotpSignInForm() {
+  const { otpError } = useLoaderData<typeof loader>();
   const auth = useFetcher();
   const submission = useMemo(
-    () => (auth.data ? submissionSchema.parse(auth.data) : undefined),
+    () => (auth.data ? SubmissionSchema.parse(auth.data) : undefined),
     [auth.data],
   );
   const formId = useId();
@@ -189,7 +153,7 @@ function TotpSignInForm({ error }: { error?: { message: string } }) {
       action="/auth/totp/login"
       className="w-full"
     >
-      <FormError error={form.error} className="mb-4" />
+      <FormError error={form.error || otpError} className="mb-4" />
       <div className="grid gap-6">
         <InputWithError
           label="Email"
@@ -201,85 +165,6 @@ function TotpSignInForm({ error }: { error?: { message: string } }) {
           {loading ? "Generating..." : "Get code"}
         </Button>
       </div>
-    </auth.Form>
-  );
-}
-
-function TotpVerifyForm({ email }: { email?: string }) {
-  const auth = useFetcher();
-  const formId = useId();
-  const submission = useMemo(
-    () => (auth.data ? submissionSchema.parse(auth.data) : undefined),
-    [auth.data],
-  );
-  const [form, { otp }] = useForm({
-    id: formId,
-    lastSubmission: submission,
-    fallbackNative: true,
-  });
-  const refresh = useFetcher();
-  const isRefreshing = refresh.state === "submitting";
-
-  return (
-    <>
-      <auth.Form
-        {...form.props}
-        method="post"
-        action="/auth/totp/verify"
-        className="w-full"
-      >
-        {submission ? (
-          <FormError error={form.error} className="mb-4" />
-        ) : (
-          <Alert className="mb-6">
-            <MailCheck
-              strokeWidth={2.5}
-              className="h-4 w-4 stroke-emerald-600"
-            />
-            <AlertTitle className="small text-emerald-600">
-              Check your mailbox
-            </AlertTitle>
-            <AlertDescription className="muted text-xs">
-              Check your mail box for the OTP code <br /> and enter it in the
-              input below to complete sign in.
-            </AlertDescription>
-          </Alert>
-        )}
-        <div className="grid gap-6">
-          <InputWithError
-            label="Enter OTP code"
-            error={otp.error}
-            errorId={otp.errorId}
-            {...conform.input(otp)}
-          />
-          <Button disabled={isRefreshing || auth.state === "submitting"}>
-            Submit
-          </Button>
-        </div>
-      </auth.Form>
-      <refresh.Form method="post" action="/auth/totp/login" className="mt-4">
-        <input type="hidden" name="email" value={email} />
-        <Button variant="link" className="w-full" disabled={isRefreshing}>
-          {isRefreshing ? "Requesting new code..." : "Request new code"}
-        </Button>
-      </refresh.Form>
-    </>
-  );
-}
-
-function WebAuthnSignInForm({ options }: { options: WebAuthnOptionsResponse }) {
-  const auth = useFetcher();
-
-  return (
-    <auth.Form
-      onSubmit={handleFormSubmit(options)}
-      method="post"
-      action="/auth/authn/login"
-      className="w-full"
-    >
-      <Button name="intent" value="authentication" className="w-full">
-        Sign-in with device/passkey
-      </Button>
     </auth.Form>
   );
 }

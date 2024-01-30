@@ -23,6 +23,8 @@ import { cn } from "./lib/misc";
 import { getCookieConsent } from "./lib/cookie-consent";
 import { RootLayout } from "./components/root-layout";
 import { getIsMobile } from "./lib/mobile";
+import { AuthToken } from "./lib/session.server";
+import { tailwindPallettePlugin } from "./rdt-tailwind-pallette";
 
 export const links: LinksFunction = () => [
   { rel: "preload", href: customFontStyles, as: "style" },
@@ -57,6 +59,7 @@ export const links: LinksFunction = () => [
 ];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const token = await AuthToken.get(request);
   const cookieConsent = getCookieConsent(request);
   return json({
     userPrefs: {
@@ -65,6 +68,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     clientHints: getClientHints(request),
     showCookieNotice: cookieConsent === null,
     isMobile: getIsMobile(request),
+    user: token.isAuthenticated ? await token.getUser() : null,
   });
 };
 
@@ -96,7 +100,9 @@ let App = () => {
 
 if (process.env.NODE_ENV === "development") {
   const { withDevTools } = await import("remix-development-tools");
-  App = withDevTools(App);
+  App = withDevTools(App, {
+    plugins: [tailwindPallettePlugin()],
+  });
 }
 
 export default App;

@@ -22,9 +22,9 @@ export const CredentialTableSchema = /* surrealql */`
 
 export const updateCredential = async (userId: string, password: Password) => {
   const db = await getDatabaseInstance();
-  const [credential] = await db.query<UserCredential | null>(
+  const [credential] = await db.query<UserCredential>(
     /* surrealql */ `
-    UPDATE credential SET password = $password WHERE user_id = $userId;
+    UPDATE credential SET password = $password WHERE user = $userId;
   `,
     { userId, password },
   );

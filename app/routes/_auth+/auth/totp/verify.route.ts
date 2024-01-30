@@ -1,27 +1,39 @@
 import { parse } from "@conform-to/zod";
-import { ActionFunctionArgs, LoaderFunctionArgs, json } from "@remix-run/node";
+import {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  json,
+  redirect,
+} from "@remix-run/node";
 import { AuthorizationError } from "remix-auth";
-import { redirectBack } from "remix-utils/redirect-back";
-import { Strategies, authenticator } from "~/lib/auth/auth.server";
-import { TOTPVerifySchema } from "~/lib/auth/strategies/totp/schema";
-import { getSubmission } from "~/lib/form";
+import { TOTPVerifySchema } from "./schema";
+import { AuthToken } from "~/lib/session.server";
+import { clearOtpCookie, otpCookie } from "./cookie";
+import capitalize from "capitalize";
+import { verifyOTP } from "./verify";
 
 export async function action({ request }: ActionFunctionArgs) {
-  const formData = await request.clone().formData();
+  const token = await AuthToken.get(request);
+  if (token.isAuthenticated) {
+    throw redirect("/");
+  }
 
-  const submission = await parse(formData, {
-    schema: TOTPVerifySchema,
-    async: true,
-  });
+  const formData = await request.clone().formData();
+  const submission = parse(formData, { schema: TOTPVerifySchema });
   if (!submission.value) {
     return json(submission, { status: 400 });
   }
 
+  const data = submission.value;
+  const cookie = (await otpCookie.parse(request.headers.get("cookie"))) || {};
+
   try {
-    return await authenticator.authenticate(Strategies.TOTP, request, {
-      successRedirect: "/",
-      throwOnError: true,
-      context: { otp: submission.value.otp },
+    const totp = await verifyOTP(data.id, data.otp, cookie);
+
+    return await token.upgrade({
+      userId: totp.user.id,
+      redirectTo: "/",
+      headers: new Headers([["Set-Cookie", await clearOtpCookie(cookie)]]),
     });
   } catch (error: any) {
     if (error instanceof Response) {
@@ -31,21 +43,32 @@ export async function action({ request }: ActionFunctionArgs) {
         {
           ...submission,
           error: {
-            "": [error.message],
+            "": [capitalize(error.message.trim(), true)],
           },
         },
         {
-          status: error.message.toLowerCase().includes("server error")
-            ? 500
-            : 400,
+          status: 400,
+          headers: [["Set-Cookie", await otpCookie.serialize(cookie)]],
         },
       );
     } else {
-      return json(getSubmission(error, formData), { status: 500 });
+      console.error(`🔴 Failed to verify OTP: ${error}`);
+      return json(
+        {
+          ...submission,
+          error: {
+            "": ["Unknown server error"],
+          },
+        },
+        {
+          status: 500,
+          headers: [["Set-Cookie", await otpCookie.serialize(cookie)]],
+        },
+      );
     }
   }
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  return redirectBack(request, { fallback: "/signin?method=totp" });
+  return redirect("/signin?method=totp");
 }

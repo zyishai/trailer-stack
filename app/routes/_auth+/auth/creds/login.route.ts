@@ -3,18 +3,23 @@
 
 import { parse } from "@conform-to/zod";
 import {
-  ActionFunction,
-  LoaderFunction,
+  type ActionFunction,
+  type LoaderFunction,
   json,
   redirect,
 } from "@remix-run/node";
 import capitalize from "capitalize";
 import { AuthorizationError } from "remix-auth";
-import { Strategies, authenticator } from "~/lib/auth/auth.server";
-import { LoginSchema } from "~/lib/auth/strategies/creds/schema";
-import { getSubmission } from "~/lib/form";
+import { signin } from "./signin";
+import { LoginSchema } from "./schemas";
+import { AuthToken } from "~/lib/session.server";
 
 export const action = (async ({ request }) => {
+  const authToken = await AuthToken.get(request);
+  if (authToken.isAuthenticated) {
+    throw redirect("/");
+  }
+
   const formData = await request.formData();
   const submission = await parse(formData, {
     schema: LoginSchema,
@@ -27,10 +32,22 @@ export const action = (async ({ request }) => {
   const credentials = submission.value;
 
   try {
-    return await authenticator.authenticate(Strategies.Credentials, request, {
-      successRedirect: "/",
-      throwOnError: true,
-      context: { formData, credentials },
+    // Verify credentials and fetch user data
+    const user = await signin(credentials.username, credentials.password);
+    if (!user) {
+      console.error(
+        `🔴 Failed to sign in with credentials: ${JSON.stringify(
+          credentials,
+          null,
+          2,
+        )}. Expected: user object, Got: ${user}`,
+      );
+      throw new AuthorizationError("Invalid username or password");
+    }
+
+    return await authToken.upgrade({
+      userId: user.id,
+      redirectTo: "/",
     });
   } catch (error: any) {
     if (error instanceof Response) {
@@ -40,22 +57,22 @@ export const action = (async ({ request }) => {
         {
           ...submission,
           error: {
-            "": [
-              capitalize(
-                error.message.replace(/^server error:/i, "").trim(),
-                true,
-              ),
-            ],
+            "": [capitalize(error.message.trim(), true)],
           },
         },
-        {
-          status: error.message.toLowerCase().includes("server error")
-            ? 500
-            : 400,
-        },
+        { status: 400 },
       );
     } else {
-      return json(getSubmission(error, formData), { status: 500 });
+      console.error(`🔴 Login failed: ${error}`);
+      return json(
+        {
+          ...submission,
+          error: {
+            "": ["Unknown server error"],
+          },
+        },
+        { status: 500 },
+      );
     }
   }
 }) satisfies ActionFunction;
