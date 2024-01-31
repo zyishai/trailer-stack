@@ -6,7 +6,7 @@ import { FormError } from "~/components/form/form-error";
 import { InputWithError } from "~/components/form/input-with-error";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { AuthToken } from "~/lib/session.server";
-import { SubmissionSchema } from "~/models/submission";
+import { Submission } from "~/models/submission";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const token = await AuthToken.get(request);
@@ -20,7 +20,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export default function SignUpPage() {
   const auth = useFetcher();
   const submission = useMemo(
-    () => (auth.data ? SubmissionSchema.parse(auth.data) : undefined),
+    () => (auth.data ? Submission.parse(auth.data) : undefined),
     [auth.data],
   );
   const formId = useId();

@@ -9,7 +9,7 @@ import { cn } from "~/lib/misc";
 import { useForm } from "@conform-to/react";
 import { action } from "./auth/totp/verify.route";
 import { FormError } from "~/components/form/form-error";
-import { SubmissionSchema } from "~/models/submission";
+import { Submission } from "~/models/submission";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const token = await AuthToken.get(request);
@@ -87,7 +87,7 @@ function OneTimePasswordForm({ otpId }: { otpId: string }) {
   const [code, setCode] = useState("");
   const fetch = useFetcher<typeof action>();
   const lastSubmission = useMemo(
-    () => (fetch.data ? SubmissionSchema.parse(fetch.data) : undefined),
+    () => (fetch.data ? Submission.parse(fetch.data) : undefined),
     [fetch.data],
   );
   const [form] = useForm({ lastSubmission, fallbackNative: true });

@@ -11,7 +11,7 @@ import { Label } from "~/components/ui/label";
 import { AuthToken } from "~/lib/session.server";
 import { otpCookie } from "./auth/totp/cookie";
 import { resetCookie } from "./auth/forgot/cookie";
-import { SubmissionSchema } from "~/models/submission";
+import { Submission } from "~/models/submission";
 
 const AuthMethodSchema = z.preprocess(
   method => (method === "otp" ? "totp" : method),
@@ -90,7 +90,7 @@ function CredentialsSignInForm() {
   const { resetError } = useLoaderData<typeof loader>();
   const auth = useFetcher();
   const submission = useMemo(
-    () => (auth.data ? SubmissionSchema.parse(auth.data) : undefined),
+    () => (auth.data ? Submission.parse(auth.data) : undefined),
     [auth.data],
   );
   const formId = useId();
@@ -135,7 +135,7 @@ function TotpSignInForm() {
   const { otpError } = useLoaderData<typeof loader>();
   const auth = useFetcher();
   const submission = useMemo(
-    () => (auth.data ? SubmissionSchema.parse(auth.data) : undefined),
+    () => (auth.data ? Submission.parse(auth.data) : undefined),
     [auth.data],
   );
   const formId = useId();

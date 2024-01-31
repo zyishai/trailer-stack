@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SubmissionSchema = z.object({
+export const Submission = z.object({
   intent: z.string(),
   payload: z.record(z.any()),
   error: z.record(z.string().array()),
