@@ -13,8 +13,6 @@ import { Button } from "~/components/ui/button";
 import { parse } from "@conform-to/zod";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { MailCheck } from "lucide-react";
-import { AuthorizationError } from "remix-auth";
-import capitalize from "capitalize";
 import { AuthToken } from "~/lib/session.server";
 import { getUserByEmailAddress } from "~/models/user";
 import { generateTOTP } from "@epic-web/totp";
@@ -24,6 +22,11 @@ import { sendEmail } from "~/lib/email.server";
 import ResetPasswordTemplate from "~/components/emails/reset-password";
 import { resetCookie, setResetCookie } from "./auth/forgot/cookie";
 import { ForgotPasswordSchema } from "./auth/forgot/schemas";
+import {
+  AuthenticationError,
+  errorToStatusCode,
+  errorToSubmission,
+} from "~/lib/error";
 
 export async function action({ request }: ActionFunctionArgs) {
   const token = await AuthToken.get(request);
@@ -47,7 +50,7 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     const user = await getUserByEmailAddress(emailAddress);
     if (!user) {
-      throw new AuthorizationError("User not found");
+      throw new AuthenticationError("USER_NOT_FOUND");
     }
 
     const { otp, ...payload } = generateTOTP();
@@ -77,35 +80,16 @@ export async function action({ request }: ActionFunctionArgs) {
   } catch (error: any) {
     if (error instanceof Response) {
       throw error;
-    } else if (error instanceof AuthorizationError) {
-      return json(
-        {
-          ...submission,
-          error: {
-            "": [capitalize(error.message.trim(), true)],
-          },
-        },
-        {
-          status: 400,
-          headers: [["Set-Cookie", await resetCookie.serialize(cookie)]],
-        },
-      );
     } else {
       console.error(
         `🔴 Failed to generate token for reset password request: ${error}`,
       );
-      return json(
-        {
-          ...submission,
-          error: {
-            "": ["Unknown server error"],
-          },
-        },
-        {
-          status: 500,
-          headers: [["Set-Cookie", await resetCookie.serialize(cookie)]],
-        },
-      );
+      const submissionWithError = errorToSubmission(submission, error);
+      const status = errorToStatusCode(error);
+      return json(submissionWithError, {
+        status,
+        headers: [["Set-Cookie", await resetCookie.serialize(cookie)]],
+      });
     }
   }
 }

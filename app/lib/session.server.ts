@@ -13,6 +13,7 @@ import {
   disableToken,
   getToken,
 } from "~/models/auth-token";
+import { SessionError } from "./error";
 
 const userSessionCookieName = "auth_cookie";
 const EMPTY_TOKEN = "NONE";
@@ -135,13 +136,13 @@ export class AuthToken {
       console.warn(
         `🟠 Access to token's user blocked: token inactive. Token: ${this.value}`,
       );
-      throw new Error("Cannot get user. Token inactive.");
+      throw new SessionError("User unauthenticated");
     }
     if (!token.user) {
       console.warn(
         `🟠 Access to token's user blocked: token unauthenticated. Token: ${this.value}`,
       );
-      throw new Error("Cannot get user. Token unauthenticated.");
+      throw new SessionError("User unauthenticated");
     }
 
     return token.user;

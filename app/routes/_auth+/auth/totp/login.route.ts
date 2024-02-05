@@ -1,7 +1,5 @@
 import { type ActionFunctionArgs, json, redirect } from "@remix-run/node";
 import { redirectBack } from "remix-utils/redirect-back";
-import { AuthorizationError } from "remix-auth";
-import capitalize from "capitalize";
 import { parse } from "@conform-to/zod";
 import { OTPLoginSchema } from "./schema";
 import { AuthToken } from "~/lib/session.server";
@@ -12,6 +10,11 @@ import { getDomain } from "~/lib/misc";
 import { sendEmail } from "~/lib/email.server";
 import TotpTemplate from "~/components/emails/totp";
 import { clearOtpCookie, otpCookie, setOtpCookie } from "./cookie";
+import {
+  AuthenticationError,
+  errorToStatusCode,
+  errorToSubmission,
+} from "~/lib/error";
 
 export async function action({ request }: ActionFunctionArgs) {
   const authToken = await AuthToken.get(request);
@@ -33,7 +36,7 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     const user = await getUserByEmailAddress(credentials.email);
     if (!user) {
-      throw new AuthorizationError("User not found");
+      throw new AuthenticationError("USER_NOT_FOUND");
     }
 
     const cookie = (await otpCookie.parse(request.headers.get("cookie"))) || {};
@@ -74,29 +77,11 @@ export async function action({ request }: ActionFunctionArgs) {
   } catch (error: any) {
     if (error instanceof Response) {
       throw error;
-    } else if (error instanceof AuthorizationError) {
-      return json(
-        {
-          ...submission,
-          error: {
-            "": [capitalize(error.message.trim(), true)],
-          },
-        },
-        {
-          status: 400,
-        },
-      );
     } else {
       console.error(`🔴 [OTP Login] Server error: ${error}`);
-      return json(
-        {
-          ...submission,
-          error: {
-            "": ["Server error: failed to generate OTP code"],
-          },
-        },
-        { status: 500 },
-      );
+      const submissionWithError = errorToSubmission(submission, error);
+      const status = errorToStatusCode(error);
+      return json(submissionWithError, { status });
     }
   }
 }

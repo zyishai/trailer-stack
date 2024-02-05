@@ -17,8 +17,12 @@ import { AuthToken } from "~/lib/session.server";
 import invariant from "tiny-invariant";
 import { clearResetCookie, resetCookie } from "./auth/forgot/cookie";
 import { verifyOTP } from "./auth/forgot/verify";
-import { AuthorizationError } from "remix-auth";
 import { deactivateTOTP } from "~/models/totp";
+import {
+  errorToStatusCode,
+  getClientErrorMessage,
+  errorToSubmission,
+} from "~/lib/error";
 
 export async function action({ request }: ActionFunctionArgs) {
   const token = await AuthToken.get(request);
@@ -64,12 +68,9 @@ export async function action({ request }: ActionFunctionArgs) {
       console.error(
         `🔴 Failed to change password. User id ${cookie.userId}, New password: ${password}`,
       );
-      return json({
-        ...submission,
-        error: {
-          "": ["Unknown server error "],
-        },
-      });
+      const submissionWithError = errorToSubmission(submission, error);
+      const status = errorToStatusCode(error);
+      return json(submissionWithError, { status });
     }
   }
 }
@@ -115,10 +116,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     if (error instanceof Response) {
       throw error;
     } else {
-      cookie.error =
-        error instanceof AuthorizationError
-          ? error.message
-          : "Unknown server error";
+      cookie.error = getClientErrorMessage(error);
       throw redirect("/signin?method=creds", {
         headers: {
           "Set-Cookie": await resetCookie.serialize(cookie),

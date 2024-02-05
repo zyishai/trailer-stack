@@ -93,64 +93,6 @@ export async function recordFailedAttempt(id: string) {
   );
   return !!totp;
 }
-//   const db = await getDatabaseInstance();
-//   const [totp] = await db.query<Totp | null>(
-//     /* surrealql */ `
-//     CREATE ONLY totp CONTENT {
-//       otp: $otp,
-//       hash: $hash
-//     };
-//   `,
-//     { otp, hash },
-//   );
-
-//   return totp;
-// };
-
-// export const updateTotp = async (
-//   id: string,
-//   data: Partial<
-//     Pick<Totp, "active" | "attempts" | "expiresAt" | "otp" | "hash">
-//   >,
-// ) => {
-//   const db = await getDatabaseInstance();
-//   const [totp] = await db.query<Totp | null>(
-//     /* surrealql */ `
-//     UPDATE totp MERGE {
-//       otp: IF $otp IS NOT NONE { $otp } ELSE { otp },
-//       hash: IF $hash IS NOT NONE { $hash } ELSE { hash },
-//       active: IF $active IS NOT NONE { $active } ELSE { active },
-//       attempts: IF $attempts IS NOT NONE { $attempts } ELSE { attempts },
-//       expiresAt: IF $expiresAt IS NOT NONE { $expiresAt } ELSE { expiresAt },
-//     } WHERE id = $id;
-//   `,
-//     { id, ...data },
-//   );
-
-//   return totp;
-// };
-
-// export const deleteTotp = async (id: string) => {
-//   const db = await getDatabaseInstance();
-//   await db.query(
-//     /* surrealql */ `
-//     DELETE FROM totp WHERE id = $id
-//   `,
-//     { id },
-//   );
-// };
-
-// export const getTotp = async (otp: string) => {
-//   const db = await getDatabaseInstance();
-//   const [totp] = await db.query<Totp | null>(
-//     /* surrealql */ `
-//     SELECT * FROM totp WHERE otp = $otp;
-//   `,
-//     { otp },
-//   );
-
-//   return totp;
-// };
 
 export const Totp = z.object({
   id: z.string().startsWith("totp:"),

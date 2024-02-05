@@ -9,11 +9,14 @@ import {
   json,
   redirect,
 } from "@remix-run/node";
-import { AuthorizationError } from "remix-auth";
 import { RegisterSchema } from "./schemas";
 import { signup } from "./signup";
 import { AuthToken } from "~/lib/session.server";
-import capitalize from "capitalize";
+import {
+  AuthenticationError,
+  errorToStatusCode,
+  errorToSubmission,
+} from "~/lib/error";
 
 export const action = (async ({ request }) => {
   const authToken = await AuthToken.get(request);
@@ -27,9 +30,7 @@ export const action = (async ({ request }) => {
     async: true,
   });
   if (!submission.value) {
-    return json(submission, {
-      status: 400,
-    });
+    return json(submission, { status: 400 });
   }
 
   const credentials = submission.value;
@@ -45,7 +46,7 @@ export const action = (async ({ request }) => {
           2,
         )}. Expected: user object, Got: ${user}`,
       );
-      throw new AuthorizationError("Username or email are taken");
+      throw new AuthenticationError("CREDS_TAKEN");
     }
 
     return await authToken.upgrade({
@@ -55,29 +56,11 @@ export const action = (async ({ request }) => {
   } catch (error: any) {
     if (error instanceof Response) {
       throw error; // This is a redirect, safe to forward :)
-    } else if (error instanceof AuthorizationError) {
-      return json(
-        {
-          ...submission,
-          error: {
-            "": [capitalize(error.message.trim(), true)],
-          },
-        },
-        {
-          status: 400,
-        },
-      );
     } else {
       console.error(`🔴 Registration failed: ${error}`);
-      return json(
-        {
-          ...submission,
-          error: {
-            "": ["Unknown server error"],
-          },
-        },
-        { status: 500 },
-      );
+      const submissionWithError = errorToSubmission(submission, error);
+      const status = errorToStatusCode(error);
+      return json(submissionWithError, { status });
     }
   }
 }) satisfies ActionFunction;

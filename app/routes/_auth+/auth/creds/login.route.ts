@@ -8,11 +8,14 @@ import {
   json,
   redirect,
 } from "@remix-run/node";
-import capitalize from "capitalize";
-import { AuthorizationError } from "remix-auth";
 import { signin } from "./signin";
 import { LoginSchema } from "./schemas";
 import { AuthToken } from "~/lib/session.server";
+import {
+  AuthenticationError,
+  errorToStatusCode,
+  errorToSubmission,
+} from "~/lib/error";
 
 export const action = (async ({ request }) => {
   const authToken = await AuthToken.get(request);
@@ -42,7 +45,7 @@ export const action = (async ({ request }) => {
           2,
         )}. Expected: user object, Got: ${user}`,
       );
-      throw new AuthorizationError("Invalid username or password");
+      throw new AuthenticationError("CREDS_INVALID");
     }
 
     return await authToken.upgrade({
@@ -52,27 +55,11 @@ export const action = (async ({ request }) => {
   } catch (error: any) {
     if (error instanceof Response) {
       throw error; // This is a redirect, safe to throw :)
-    } else if (error instanceof AuthorizationError) {
-      return json(
-        {
-          ...submission,
-          error: {
-            "": [capitalize(error.message.trim(), true)],
-          },
-        },
-        { status: 400 },
-      );
     } else {
       console.error(`🔴 Login failed: ${error}`);
-      return json(
-        {
-          ...submission,
-          error: {
-            "": ["Unknown server error"],
-          },
-        },
-        { status: 500 },
-      );
+      const submissionWithError = errorToSubmission(submission, error);
+      const status = errorToStatusCode(error);
+      return json(submissionWithError, { status });
     }
   }
 }) satisfies ActionFunction;

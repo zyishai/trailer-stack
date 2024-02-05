@@ -5,12 +5,11 @@ import {
   json,
   redirect,
 } from "@remix-run/node";
-import { AuthorizationError } from "remix-auth";
 import { TOTPVerifySchema } from "./schema";
 import { AuthToken } from "~/lib/session.server";
 import { clearOtpCookie, otpCookie } from "./cookie";
-import capitalize from "capitalize";
 import { verifyOTP } from "./verify";
+import { errorToStatusCode, errorToSubmission } from "~/lib/error";
 
 export async function action({ request }: ActionFunctionArgs) {
   const token = await AuthToken.get(request);
@@ -38,33 +37,14 @@ export async function action({ request }: ActionFunctionArgs) {
   } catch (error: any) {
     if (error instanceof Response) {
       throw error;
-    } else if (error instanceof AuthorizationError) {
-      return json(
-        {
-          ...submission,
-          error: {
-            "": [capitalize(error.message.trim(), true)],
-          },
-        },
-        {
-          status: 400,
-          headers: [["Set-Cookie", await otpCookie.serialize(cookie)]],
-        },
-      );
     } else {
       console.error(`🔴 Failed to verify OTP: ${error}`);
-      return json(
-        {
-          ...submission,
-          error: {
-            "": ["Unknown server error"],
-          },
-        },
-        {
-          status: 500,
-          headers: [["Set-Cookie", await otpCookie.serialize(cookie)]],
-        },
-      );
+      const submissionWithError = errorToSubmission(submission, error);
+      const status = errorToStatusCode(error);
+      return json(submissionWithError, {
+        status,
+        headers: [["Set-Cookie", await otpCookie.serialize(cookie)]],
+      });
     }
   }
 }
