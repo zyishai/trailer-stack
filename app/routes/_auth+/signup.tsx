@@ -1,12 +1,12 @@
 import { conform, useForm } from "@conform-to/react";
 import { Link, useFetcher } from "@remix-run/react";
-import { useId, useMemo } from "react";
+import { useId } from "react";
 import { Button } from "~/components/ui/button";
 import { FormError } from "~/components/form/form-error";
 import { InputWithError } from "~/components/form/input-with-error";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { AuthToken } from "~/lib/session.server";
-import { Submission } from "~/models/submission";
+import { action } from "./auth/creds/register.route";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const token = await AuthToken.get(request);
@@ -18,15 +18,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function SignUpPage() {
-  const auth = useFetcher();
-  const submission = useMemo(
-    () => (auth.data ? Submission.parse(auth.data) : undefined),
-    [auth.data],
-  );
+  const auth = useFetcher<typeof action>();
   const formId = useId();
   const [form, { username, email, password }] = useForm({
     id: formId,
-    lastSubmission: submission,
+    lastSubmission: auth.data,
     fallbackNative: true,
   });
 

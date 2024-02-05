@@ -1,7 +1,7 @@
 import { conform, useForm } from "@conform-to/react";
 import { LoaderFunctionArgs, json, redirect } from "@remix-run/node";
 import { Link, useFetcher, useLoaderData } from "@remix-run/react";
-import { useId, useMemo } from "react";
+import { useId } from "react";
 import { InputWithError } from "~/components/form/input-with-error";
 import { FormError } from "~/components/form/form-error";
 import { Button } from "~/components/ui/button";
@@ -11,7 +11,8 @@ import { Label } from "~/components/ui/label";
 import { AuthToken } from "~/lib/session.server";
 import { otpCookie } from "./auth/totp/cookie";
 import { resetCookie } from "./auth/forgot/cookie";
-import { Submission } from "~/models/submission";
+import { action as credsLoginAction } from "./auth/creds/login.route";
+import { action as totpLoginAction } from "./auth/totp/login.route";
 
 const AuthMethodSchema = z.preprocess(
   method => (method === "otp" ? "totp" : method),
@@ -88,15 +89,11 @@ export default function SignInPage() {
 
 function CredentialsSignInForm() {
   const { resetError } = useLoaderData<typeof loader>();
-  const auth = useFetcher();
-  const submission = useMemo(
-    () => (auth.data ? Submission.parse(auth.data) : undefined),
-    [auth.data],
-  );
+  const auth = useFetcher<typeof credsLoginAction>();
   const formId = useId();
   const [form, { username, password }] = useForm({
     id: formId,
-    lastSubmission: submission,
+    lastSubmission: auth.data,
     fallbackNative: true,
   });
 
@@ -133,15 +130,11 @@ function CredentialsSignInForm() {
 
 function TotpSignInForm() {
   const { otpError } = useLoaderData<typeof loader>();
-  const auth = useFetcher();
-  const submission = useMemo(
-    () => (auth.data ? Submission.parse(auth.data) : undefined),
-    [auth.data],
-  );
+  const auth = useFetcher<typeof totpLoginAction>();
   const formId = useId();
   const [form, { email }] = useForm({
     id: formId,
-    lastSubmission: submission,
+    lastSubmission: auth.data,
     fallbackNative: true,
   });
   const loading = auth.state === "submitting";

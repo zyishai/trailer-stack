@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { LoaderFunctionArgs, json, redirect } from "@remix-run/node";
 import { useFetcher, useLoaderData } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import { AuthToken } from "~/lib/session.server";
-import { otpCookie } from "./auth/totp/cookie";
+import { otpCookie } from "../auth/totp/cookie";
 import OtpInput from "react-otp-input";
 import { cn } from "~/lib/misc";
 import { useForm } from "@conform-to/react";
-import { action } from "./auth/totp/verify.route";
+import { action } from "../auth/totp/verify.route";
 import { FormError } from "~/components/form/form-error";
-import { Submission } from "~/models/submission";
+import { useCountdown } from "./use-countdown";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const token = await AuthToken.get(request);
@@ -28,26 +28,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export default function ValidateTotpPage() {
   const { id, expires, email } = useLoaderData<typeof loader>();
   const resend = useFetcher();
-  const [countdown, setCountdown] = useState("");
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (expires) {
-      interval = setInterval(() => {
-        const diffInSeconds = Math.max(
-          0,
-          Math.floor((+new Date(expires) - +new Date()) / 1000),
-        );
-        const minutes = Math.floor(diffInSeconds / 60);
-        const seconds = diffInSeconds % 60;
-        setCountdown(
-          `${minutes.toString().padStart(2, "0")}:${seconds
-            .toString()
-            .padStart(2, "0")}`,
-        );
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [expires]);
+  const countdown = useCountdown({ expirationTime: expires });
 
   return (
     <div className="flex h-full flex-col items-center overflow-y-auto">
@@ -60,9 +41,9 @@ export default function ValidateTotpPage() {
           <OneTimePasswordForm otpId={id} />
         </div>
         <div className="my-4">
-          {countdown ? (
-            <p className="small muted">Code will expire in {countdown}</p>
-          ) : null}
+          <p className="small muted">
+            Code will expire in {countdown.prettyPrint({ noHours: true })}
+          </p>
         </div>
         <Button form="verify">Submit</Button>
         <div className="mt-8 flex flex-col items-center">
@@ -86,11 +67,7 @@ export default function ValidateTotpPage() {
 function OneTimePasswordForm({ otpId }: { otpId: string }) {
   const [code, setCode] = useState("");
   const fetch = useFetcher<typeof action>();
-  const lastSubmission = useMemo(
-    () => (fetch.data ? Submission.parse(fetch.data) : undefined),
-    [fetch.data],
-  );
-  const [form] = useForm({ lastSubmission, fallbackNative: true });
+  const [form] = useForm({ lastSubmission: fetch.data, fallbackNative: true });
 
   return (
     <fetch.Form
