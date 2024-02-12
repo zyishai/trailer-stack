@@ -50,6 +50,7 @@ async function updateAuthCookie(
 
 export class AuthToken {
   private constructor(
+    public readonly id: string,
     public readonly value: string,
     public readonly isAuthenticated: boolean = false,
     private authSession: TypedSession<typeof schema>,
@@ -69,7 +70,7 @@ export class AuthToken {
     });
     // TODO: copy relations and permissions from `refresh`, if any
 
-    return new AuthToken(token.value, !!token.user, authSession);
+    return new AuthToken(token.id, token.value, !!token.user, authSession);
   }
 
   // 1. disable token in database
@@ -125,7 +126,7 @@ export class AuthToken {
       await updateAuthCookie(authSession, newToken.value, request.url);
     }
 
-    return new AuthToken(token.value, !!token.user, authSession);
+    return new AuthToken(token.id, token.value, !!token.user, authSession);
   }
 
   // 1. check if token still active
