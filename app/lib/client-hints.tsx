@@ -6,19 +6,19 @@
 import { useRevalidator } from "@remix-run/react";
 import { useEffect } from "react";
 import { parse } from "cookie";
-import { isTheme } from "./theme";
+import { DEFAULT_THEME, isTheme } from "./theme";
 
 const clientHints = {
   theme: {
     cookieName: "CH-prefers-color-scheme",
     getValueString: `window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'`,
-    fallback: "light",
+    fallback: DEFAULT_THEME,
     transform: (value: string) => {
       if (isTheme(value)) {
         return value;
       }
 
-      return "light";
+      return DEFAULT_THEME;
     },
   },
 };

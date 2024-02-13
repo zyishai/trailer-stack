@@ -7,8 +7,8 @@ import {
 } from "lucide-react";
 import { ThemeSelector } from "~/components/theme-selector";
 import { CookiesNotice } from "~/components/cookies-notice";
-import { useCookieConsent } from "~/lib/cookie-consent";
 import { useLayoutInfo } from "~/lib/layout-info";
+import { useShowCookieNotice } from "~/lib/root-data";
 
 type LayoutProps = {
   showHeader?: boolean;
@@ -27,7 +27,7 @@ export function RootLayout({ children }: React.PropsWithChildren) {
     ...layoutInfo,
   };
   const { showHeader, showFooter, logo } = layoutProps;
-  const cookieConsent = useCookieConsent();
+  const showCookieNotice = useShowCookieNotice();
 
   return (
     <div className="flex h-screen flex-col">
@@ -48,7 +48,7 @@ export function RootLayout({ children }: React.PropsWithChildren) {
 
       <div className="flex-1 overflow-hidden">{children}</div>
 
-      {cookieConsent.showCookieNotice ? (
+      {showCookieNotice ? (
         <CookiesNotice className="fixed bottom-0 max-w-full self-end sm:bottom-14 md:right-6 md:max-w-3xl" />
       ) : null}
 

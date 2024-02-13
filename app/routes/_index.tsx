@@ -1,11 +1,11 @@
 import type { MetaFunction } from "@remix-run/node";
-import { Link, useRouteLoaderData } from "@remix-run/react";
+import { Link } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import { CodeWithCopy } from "~/components/code-with-copy";
 import { MouseIcon } from "lucide-react";
 import { Separator } from "~/components/ui/separator";
 import { LogoutButton } from "~/components/logout-button";
-import { loader } from "~/root";
+import { useUser } from "~/lib/root-data";
 
 export const meta: MetaFunction = () => {
   return [
@@ -20,7 +20,7 @@ export const meta: MetaFunction = () => {
 export const handle = { layoutInfo: { logo: null /* hide logo */ } };
 
 export default function IndexPage() {
-  const rootLoaderData = useRouteLoaderData<typeof loader>("root");
+  const user = useUser();
   return (
     <main className="h-full snap-y snap-mandatory overflow-auto">
       <section className="relative -mt-20 mb-20 grid h-full snap-center place-content-center justify-items-center gap-4 px-4">
@@ -32,7 +32,7 @@ export default function IndexPage() {
           <span className="">.</span>
           <span className="text-gray-800 dark:text-gray-300">Deploy</span>
         </div>
-        {rootLoaderData?.user ? <LogoutButton /> : null}
+        {user ? <LogoutButton /> : null}
         <Separator className="my-2 w-1/4 bg-slate-200" />
         <div className="flex items-center justify-center gap-4">
           <Button

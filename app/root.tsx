@@ -22,7 +22,7 @@ import { useLayoutInfo } from "./lib/layout-info";
 import { cn } from "./lib/misc";
 import { getCookieConsent } from "./lib/cookie-consent";
 import { RootLayout } from "./components/root-layout";
-import { getIsMobile } from "./lib/mobile";
+import { getIsMobile } from "./lib/mobile.server";
 import { AuthToken } from "./lib/session.server";
 import { tailwindPallettePlugin } from "./rdt-tailwind-pallette";
 

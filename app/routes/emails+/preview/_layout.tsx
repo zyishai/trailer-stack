@@ -9,8 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { useMobile } from "~/lib/mobile";
 import { useEventSource } from "remix-utils/sse/react";
+import { useIsMobile } from "~/lib/root-data";
 
 export function loader() {
   devOnlyEnabled();
@@ -19,7 +19,7 @@ export function loader() {
 }
 
 export default function PreviewEmails() {
-  const { isMobile } = useMobile();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const rawEvent = useEventSource("/emails/sse/templates");
   const templateNames = getTemplateNames(rawEvent);

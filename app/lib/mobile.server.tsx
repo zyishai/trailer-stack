@@ -1,5 +1,3 @@
-import { useRouteLoaderData } from "@remix-run/react";
-import { loader } from "~/root";
 import mobile from "is-mobile";
 
 export function getIsMobile(request?: Request) {
@@ -20,15 +18,4 @@ export function getIsMobile(request?: Request) {
       : request?.headers.get("user-agent") ?? "";
 
   return userAgentData?.mobile ?? mobile({ ua: userAgent });
-}
-
-export function useMobile() {
-  const loaderInfo = useRouteLoaderData<typeof loader>("root");
-  if (!loaderInfo) {
-    throw new Error("Root loader has not been loaded yet");
-  }
-
-  return {
-    isMobile: loaderInfo.isMobile,
-  };
 }

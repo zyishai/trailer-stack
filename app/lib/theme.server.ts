@@ -1,5 +1,5 @@
 import { createCookie } from "@remix-run/node";
-import { type Theme, isTheme } from "./theme";
+import { type Theme, isTheme, DEFAULT_THEME } from "./theme";
 
 const cookieName = "en_theme";
 
@@ -15,7 +15,7 @@ export async function getTheme(request: Request) {
   if (isTheme(theme)) {
     return theme as Theme;
   }
-  return null;
+  return DEFAULT_THEME;
 }
 
 export async function setTheme(theme: Theme | "system") {

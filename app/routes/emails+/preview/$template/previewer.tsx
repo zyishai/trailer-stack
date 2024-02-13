@@ -1,13 +1,13 @@
 import { Resizable } from "re-resizable";
 import { cn } from "~/lib/misc";
-import { useMobile } from "~/lib/mobile";
+import { useIsMobile } from "~/lib/root-data";
 
 type PreviewerProps = {
   html: string;
   className?: string;
 };
 export function Previewer({ html, className }: PreviewerProps) {
-  const { isMobile } = useMobile();
+  const isMobile = useIsMobile();
 
   return (
     <div className={cn("flex flex-col", className)}>
