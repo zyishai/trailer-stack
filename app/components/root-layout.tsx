@@ -49,7 +49,7 @@ export function RootLayout({ children }: React.PropsWithChildren) {
       <div className="flex-1 overflow-hidden">{children}</div>
 
       {showCookieNotice ? (
-        <CookiesNotice className="fixed bottom-0 max-w-full self-end sm:bottom-14 md:right-6 md:max-w-3xl" />
+        <CookiesNotice className="fixed bottom-0 max-w-full self-end sm:bottom-14 md:right-6 md:max-w-2xl" />
       ) : null}
 
       {showFooter ? (
