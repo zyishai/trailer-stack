@@ -26,11 +26,7 @@ export function errorToSubmission(
 }
 
 export function getClientErrorMessage(error: Error) {
-  if (
-    [AuthenticationError, SessionError].some(
-      errorConstructor => error instanceof errorConstructor,
-    )
-  ) {
+  if (error instanceof BaseError) {
     return error.message;
   } else {
     return "Unknown server error";
@@ -47,6 +43,41 @@ export function errorToStatusCode(error: Error) {
 
 // 👉 Custom errors
 
+// ================================================
+// SECTION - Base error class - EDIT AT YOUR OWN RISK!
+// ================================================
+
+abstract class BaseError<Code extends string = ""> extends Error {
+  constructor(
+    codeToErrorMap: Record<Code, string>,
+    messageOrCode?: Code,
+    options?: ErrorOptions,
+  );
+  constructor(
+    codeToErrorMap: Record<Code, string>,
+    messageOrCode?: string,
+    options?: ErrorOptions,
+  );
+  constructor(
+    private readonly codeToErrorMap: Record<Code, string>,
+    messageOrCode?: Code | string,
+    options?: ErrorOptions,
+  ) {
+    const key =
+      messageOrCode && Object.keys(codeToErrorMap).includes(messageOrCode)
+        ? (messageOrCode as Code)
+        : null;
+    const message = key
+      ? codeToErrorMap[key]
+      : messageOrCode || "Unknown error";
+    super(message, options);
+  }
+}
+
+// ================================================
+// SECTION - AuthenticationError
+// ================================================
+
 const authenticationErrorMessageMap = {
   USER_NOT_FOUND: "User not found",
   OTP_INVALID: "Invalid OTP",
@@ -55,23 +86,30 @@ const authenticationErrorMessageMap = {
   CREDS_TAKEN: "Username or email are taken",
 } as const;
 type AuthenticationErrorCode = keyof typeof authenticationErrorMessageMap;
-
-export class AuthenticationError extends Error {
-  constructor(messageOrCode?: AuthenticationErrorCode, options?: ErrorOptions);
-  constructor(messageOrCode?: string, options?: ErrorOptions);
+export class AuthenticationError extends BaseError<AuthenticationErrorCode> {
+  constructor(message?: AuthenticationErrorCode, options?: ErrorOptions);
+  constructor(message?: string, options?: ErrorOptions);
   constructor(
-    messageOrCode?: AuthenticationErrorCode | string,
+    message?: AuthenticationErrorCode | string,
     options?: ErrorOptions,
   ) {
-    const key =
-      messageOrCode &&
-      messageOrCode in Object.keys(authenticationErrorMessageMap)
-        ? (messageOrCode as AuthenticationErrorCode)
-        : null;
-    const message = key
-      ? authenticationErrorMessageMap[key]
-      : key || "Authentication failed";
-    super(message, options);
+    super(authenticationErrorMessageMap, message, options);
   }
 }
-export class SessionError extends Error {}
+
+// ================================================
+// SECTION - AuthorizationError
+// ================================================
+
+const authrErrorMessageMap = {
+  ACCESS_DENIED: "You are not allowed to perform this action",
+  GRANTING_FAILED: "Failed to grant permission to perform this action",
+} as const;
+type AuthrErrorCode = keyof typeof authrErrorMessageMap;
+export class AuthorizationError extends BaseError<AuthrErrorCode> {
+  constructor(message?: AuthrErrorCode, options?: ErrorOptions);
+  constructor(message?: string, options?: ErrorOptions);
+  constructor(message?: string | AuthrErrorCode, options?: ErrorOptions) {
+    super(authrErrorMessageMap, message, options);
+  }
+}
