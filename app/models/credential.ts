@@ -20,6 +20,17 @@ export const CredentialTableSchema = /* surrealql */`
   DEFINE INDEX user ON credential FIELDS user UNIQUE;
 `;
 
+export const findCredentialByUserId = async (userId: string) => {
+  const db = await getDatabaseInstance();
+  const [credential] = await db.query<UserCredential | null>(
+    /* surrealql */ `
+      SELECT * FROM credential WHERE user = $userId;
+    `,
+    { userId },
+  );
+  return credential;
+};
+
 export const updateCredential = async (userId: string, password: Password) => {
   const db = await getDatabaseInstance();
   const [credential] = await db.query<UserCredential>(

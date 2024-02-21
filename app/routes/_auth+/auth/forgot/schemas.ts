@@ -5,7 +5,12 @@ import { Password } from "~/models/password";
 export const ForgotPasswordSchema = z.object({ email: EmailAddress });
 export const ResetPasswordSchema = z
   .object({
-    password: Password,
+    userId: z.string(),
+    password: z
+      .string()
+      .min(6, { message: "Password too short (need >6 letters)" })
+      .max(10, { message: "Password too long (need <10 letters)" })
+      .and(Password),
     confirm: Password,
   })
   .superRefine(({ password, confirm }, ctx) => {

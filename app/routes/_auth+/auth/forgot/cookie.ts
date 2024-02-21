@@ -16,8 +16,8 @@ export const resetCookie = createTypedCookie({
       id: z.string().optional(),
       otp: z.string().optional(),
       expires: z.string().datetime().optional(),
-      userId: z.string().startsWith("user:").optional(), // Used to temporarily save the userId after token verification (see: loader in /reset-password route)
       error: z.string().optional(),
+      // isChanged: z.boolean().default(false).optional()
     })
     .nullable(),
 });
@@ -26,20 +26,24 @@ export type ResetCookie = NonNullable<
   Awaited<ReturnType<(typeof resetCookie)["parse"]>>
 >;
 
-export async function setResetCookie(
+export function setResetCookie(
   cookie: ResetCookie,
   payload: { id: string; otp: string; expires: string },
 ) {
   cookie.id = payload.id;
   cookie.otp = payload.otp;
   cookie.expires = payload.expires;
-  return resetCookie.serialize(cookie);
+  // cookie.isChanged = true;
 }
 
-export async function clearResetCookie(cookie: ResetCookie) {
+export function clearResetCookie(cookie: ResetCookie) {
   delete cookie.id;
   delete cookie.otp;
   delete cookie.expires;
-  delete cookie.userId;
+  // cookie.isChanged = true;
+}
+
+export async function commitResetCookie(cookie: ResetCookie) {
+  // cookie.isChanged = false;
   return resetCookie.serialize(cookie);
 }

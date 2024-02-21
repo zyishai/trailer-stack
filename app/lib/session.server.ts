@@ -13,7 +13,8 @@ import {
   disableToken,
   getToken,
 } from "~/models/auth-token";
-import { SessionError } from "./error";
+import { AuthenticationError } from "./error";
+import { copyPrivileges, revokePrivileges } from "~/models/privilege";
 
 const userSessionCookieName = "auth_cookie";
 const EMPTY_TOKEN = "NONE";
@@ -68,7 +69,12 @@ export class AuthToken {
       value: tokenValue,
       userId: options?.userId || options?.refresh?.user?.id,
     });
-    // TODO: copy relations and permissions from `refresh`, if any
+    if (options?.refresh) {
+      await copyPrivileges({
+        sourceId: options.refresh.id,
+        targetId: token.id,
+      });
+    }
 
     return new AuthToken(token.id, token.value, !!token.user, authSession);
   }
@@ -80,9 +86,16 @@ export class AuthToken {
   }: {
     tokenValue: string;
   }): Promise<boolean> {
+    const token = await getToken({ value: tokenValue });
+    if (token) {
+      await revokePrivileges({ subjectId: token.id });
+    } else {
+      console.warn(
+        `🟠 Invalidate warning: could not find token with value ${tokenValue}`,
+      );
+    }
     const newToken = await disableToken({ value: tokenValue });
-    // TODO: disable relations and revoke permissions, if any
-    return newToken?.active ? !newToken.active : false;
+    return newToken ? !newToken.active : false;
   }
 
   // 1. validate token value from cookie and device used against the database and construct auth token object
@@ -137,13 +150,13 @@ export class AuthToken {
       console.warn(
         `🟠 Access to token's user blocked: token inactive. Token: ${this.value}`,
       );
-      throw new SessionError("User unauthenticated");
+      throw new AuthenticationError("User unauthenticated");
     }
     if (!token.user) {
       console.warn(
         `🟠 Access to token's user blocked: token unauthenticated. Token: ${this.value}`,
       );
-      throw new SessionError("User unauthenticated");
+      throw new AuthenticationError("User unauthenticated");
     }
 
     return token.user;

@@ -16,18 +16,34 @@ import { MailCheck } from "lucide-react";
 import { AuthToken } from "~/lib/session.server";
 import { getUserByEmailAddress } from "~/models/user";
 import { generateTOTP } from "@epic-web/totp";
-import { createTOTP } from "~/models/totp";
+import { createTOTP, deactivateTOTP, deactivateUserTOTPs } from "~/models/totp";
 import { getDomain } from "~/lib/misc";
 import { sendEmail } from "~/lib/email.server";
 import ResetPasswordTemplate from "~/components/emails/reset-password";
-import { resetCookie, setResetCookie } from "./auth/forgot/cookie";
+import {
+  clearResetCookie,
+  commitResetCookie,
+  resetCookie,
+  setResetCookie,
+} from "./auth/forgot/cookie";
 import { ForgotPasswordSchema } from "./auth/forgot/schemas";
 import {
   AuthenticationError,
+  AuthorizationError,
   errorToStatusCode,
   errorToSubmission,
 } from "~/lib/error";
+import { can } from "~/lib/authorization";
+import { Datetime } from "~/models/datetime";
+import { grantPrivilege } from "~/models/privilege";
 
+// 1. Revoke previous AT + clear cookie
+// 2. Can create AT?
+//    🔴 No -  Access Denied
+// 3. Create AT
+// 4. Grant read access to TOTP
+// 5. Set cookie
+// 6. Redirect to /forgot-password
 export async function action({ request }: ActionFunctionArgs) {
   const token = await AuthToken.get(request);
   if (token.isAuthenticated) {
@@ -53,8 +69,34 @@ export async function action({ request }: ActionFunctionArgs) {
       throw new AuthenticationError("USER_NOT_FOUND");
     }
 
+    await deactivateUserTOTPs(user.id);
+    clearResetCookie(cookie);
+
+    const accessResponse = await can(user)
+      .create("totp")
+      .with({ user: { id: user.id } });
+    if (!accessResponse.isAllowed) {
+      throw new AuthorizationError("ACCESS_DENIED");
+    }
+
     const { otp, ...payload } = generateTOTP();
     const totp = await createTOTP(payload, user.id);
+    const expirationTime = Datetime.safeParse(totp.expires);
+    await grantPrivilege({
+      type: "read",
+      forId: token.id,
+      toId: totp.id,
+      expires: expirationTime.success ? expirationTime.data : undefined,
+      constraints: ["TOTP_IS_ACTIVE"],
+    }).catch(async reason => {
+      console.warn(
+        `🟠 Forgot password flow: failed granting permission to read totp ${totp.id}. Reason: ${reason}`,
+      );
+      clearResetCookie(cookie);
+      await deactivateTOTP(totp.id);
+      throw new AuthorizationError("GRANTING_FAILED");
+    });
+
     const verificationLink = getDomain(
       request,
       `/reset-password?code=${otp}&id=${totp.id}`,
@@ -68,13 +110,14 @@ export async function action({ request }: ActionFunctionArgs) {
       }),
     });
 
+    setResetCookie(cookie, {
+      id: totp.id,
+      expires: totp.expires,
+      otp,
+    });
     throw redirect("/forgot-password", {
       headers: {
-        "Set-Cookie": await setResetCookie(cookie, {
-          id: totp.id,
-          expires: totp.expires,
-          otp,
-        }),
+        "Set-Cookie": await commitResetCookie(cookie),
       },
     });
   } catch (error: any) {
@@ -88,7 +131,7 @@ export async function action({ request }: ActionFunctionArgs) {
       const status = errorToStatusCode(error);
       return json(submissionWithError, {
         status,
-        headers: [["Set-Cookie", await resetCookie.serialize(cookie)]],
+        headers: [["Set-Cookie", await commitResetCookie(cookie)]],
       });
     }
   }
@@ -111,7 +154,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     { hasActiveOTP, otpError },
     {
       headers: {
-        "Set-Cookie": await resetCookie.serialize(cookie),
+        "Set-Cookie": await commitResetCookie(cookie),
       },
     },
   );

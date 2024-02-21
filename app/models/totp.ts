@@ -80,6 +80,16 @@ export async function deactivateTOTP(id: string) {
   return !!totp;
 }
 
+export async function deactivateUserTOTPs(userId: string) {
+  const db = await getDatabaseInstance();
+  await db.query<Totp | null>(
+    /* surrealql */ `
+    UPDATE totp SET active = false WHERE user = $userId;
+  `,
+    { userId },
+  );
+}
+
 export async function recordFailedAttempt(id: string) {
   const db = await getDatabaseInstance();
   const [totp] = await db.query<Totp | null>(

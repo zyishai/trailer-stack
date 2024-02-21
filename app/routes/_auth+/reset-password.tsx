@@ -6,24 +6,38 @@ import {
   json,
   redirect,
 } from "@remix-run/node";
-import { useFetcher } from "@remix-run/react";
+import { useFetcher, useLoaderData } from "@remix-run/react";
 import { useId } from "react";
 import { FormError } from "~/components/form/form-error";
 import { InputWithError } from "~/components/form/input-with-error";
 import { Button } from "~/components/ui/button";
-import { updateCredential } from "~/models/credential";
+import { findCredentialByUserId, updateCredential } from "~/models/credential";
 import { ResetPasswordSchema } from "./auth/forgot/schemas";
 import { AuthToken } from "~/lib/session.server";
 import invariant from "tiny-invariant";
-import { clearResetCookie, resetCookie } from "./auth/forgot/cookie";
+import {
+  clearResetCookie,
+  commitResetCookie,
+  resetCookie,
+} from "./auth/forgot/cookie";
 import { verifyOTP } from "./auth/forgot/verify";
 import { deactivateTOTP } from "~/models/totp";
 import {
   errorToStatusCode,
   getClientErrorMessage,
   errorToSubmission,
+  AuthorizationError,
+  AuthenticationError,
 } from "~/lib/error";
+import { Datetime } from "~/models/datetime";
+import { can } from "~/lib/authorization";
+import { grantPrivilege } from "~/models/privilege";
 
+// 1. Can change password?
+//    🔴 No - Clear cookie + Access Denied
+// 2. Change password
+// 3. Clear cookie
+// 4. Redirect back
 export async function action({ request }: ActionFunctionArgs) {
   const token = await AuthToken.get(request);
   if (token.isAuthenticated) {
@@ -39,16 +53,35 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   // Change password for the user
-  const { password } = submission.value;
+  const { password, userId } = submission.value;
 
   const cookie = (await resetCookie.parse(request.headers.get("cookie"))) || {};
 
   try {
-    if (!cookie.id || !cookie.otp || !cookie.userId) {
-      throw redirect("/");
+    if (!cookie.id) {
+      console.warn(
+        `🟠 Denied access to reset password to ${token.id}, TOTP id was not found in cookie`,
+      );
+      clearResetCookie(cookie);
+      throw new AuthorizationError("ACCESS_DENIED");
     }
 
-    await updateCredential(cookie.userId, password);
+    const credential = await findCredentialByUserId(userId);
+    const accessResponse = await can(token)
+      .change("credential", ["password"])
+      .with({ id: credential?.id });
+    if (!accessResponse.isAllowed) {
+      console.warn(
+        `🟠 Unauthorized access: reset password denied to ${token.id}, tried to change password of ${userId} (${credential?.id})`,
+      );
+      clearResetCookie(cookie);
+      throw new AuthorizationError("ACCESS_DENIED");
+    }
+
+    await updateCredential(userId, password).catch(reason => {
+      clearResetCookie(cookie);
+      throw reason;
+    });
 
     if (!(await deactivateTOTP(cookie.id))) {
       console.warn(
@@ -56,9 +89,11 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
+    clearResetCookie(cookie);
+
     throw redirect("/signin", {
       headers: {
-        "Set-Cookie": await clearResetCookie(cookie),
+        "Set-Cookie": await commitResetCookie(cookie),
       },
     });
   } catch (error: any) {
@@ -66,15 +101,24 @@ export async function action({ request }: ActionFunctionArgs) {
       throw error;
     } else {
       console.error(
-        `🔴 Failed to change password. User id ${cookie.userId}, New password: ${password}`,
+        `🔴 Failed to change password. User id ${userId}, New password: ${password}`,
       );
       const submissionWithError = errorToSubmission(submission, error);
       const status = errorToStatusCode(error);
-      return json(submissionWithError, { status });
+      return json(submissionWithError, {
+        status,
+        headers: { "Set-Cookie": await resetCookie.serialize(cookie) },
+      });
     }
   }
 }
 
+// 1. Can read AT?
+//    🔴 No - Clear cookie + Access Denied
+// 2. Verify AT
+//    🔴 Fail - Clear cookie + Invalid token
+// 3. Grant access to change user's password
+// 4. Extract user id
 export async function loader({ request }: LoaderFunctionArgs) {
   const token = await AuthToken.get(request);
   if (token.isAuthenticated) {
@@ -100,33 +144,50 @@ export async function loader({ request }: LoaderFunctionArgs) {
       return "Invalid verification link";
     });
 
+    const accessResponse = await can(token).read("totp").with({ id: otpId });
+    if (!accessResponse.isAllowed) {
+      clearResetCookie(cookie);
+      throw new AuthorizationError("ACCESS_DENIED");
+    }
+
     const totp = await verifyOTP(otpId, otp, cookie);
-    cookie.userId = totp.user.id;
+    const credential = await findCredentialByUserId(totp.user.id);
+    if (!credential) {
+      throw new AuthenticationError("USER_NOT_FOUND");
+    }
+    const expirationTime = Datetime.safeParse(totp.expires);
+    await grantPrivilege({
+      type: "update",
+      forId: token.id,
+      toId: credential.id,
+      fields: ["password"],
+      expires: expirationTime.success ? expirationTime.data : undefined,
+    }).catch(reason => {
+      console.warn(
+        `🟠 Reset password flow: failed granting permission to change password for a verified token. Reason: ${reason}`,
+      );
+      clearResetCookie(cookie);
+      throw new AuthorizationError("GRANTING_FAILED");
+    });
     return json(
-      {
-        userId: totp.user.id,
-      },
-      {
-        headers: {
-          "Set-Cookie": await resetCookie.serialize(cookie),
-        },
-      },
+      { userId: totp.user.id },
+      { headers: { "Set-Cookie": await commitResetCookie(cookie) } },
     );
   } catch (error: any) {
     if (error instanceof Response) {
       throw error;
     } else {
+      console.error(`🔴 Reset password failed to verify token: ${error}`);
       cookie.error = getClientErrorMessage(error);
       throw redirect("/signin?method=creds", {
-        headers: {
-          "Set-Cookie": await resetCookie.serialize(cookie),
-        },
+        headers: { "Set-Cookie": await commitResetCookie(cookie) },
       });
     }
   }
 }
 
 export default function ResetPasswordPage() {
+  const { userId } = useLoaderData<typeof loader>();
   const auth = useFetcher<typeof action>();
   const formId = useId();
   const [form, { password, confirm }] = useForm({
@@ -150,6 +211,7 @@ export default function ResetPasswordPage() {
           className="w-full"
         >
           <FormError error={form.error} className="mb-4" />
+          <input type="hidden" name="userId" value={userId} />
           <div className="grid gap-6">
             <InputWithError
               type="password"
