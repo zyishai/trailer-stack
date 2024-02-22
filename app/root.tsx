@@ -14,6 +14,7 @@ import {
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
+import { ExternalScripts } from "remix-utils/external-scripts";
 import { getTheme } from "./lib/theme.server";
 import { useTheme } from "./lib/theme";
 import { ClientHintsCheck, getClientHints } from "./lib/client-hints";
@@ -91,6 +92,7 @@ let App = () => {
         </RootLayout>
         <Toaster closeButton theme={theme} duration={1500} />
         <ScrollRestoration />
+        <ExternalScripts />
         <Scripts />
         <LiveReload />
       </body>

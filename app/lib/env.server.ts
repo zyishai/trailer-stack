@@ -19,6 +19,9 @@ const envSchema = z.object({
   TOTP_COOKIE_ENCRYPTION_SECRET: z.string().min(32),
   RESET_COOKIE_ENCRYPTION_SECRET: z.string().min(32),
   APP_NAME: z.string(),
+  CONTACT_FORM_ENDPOINT: z.string().url(),
+  RECAPTCHA_CLIENT_KEY: z.string(),
+  RECAPTCHA_SECRET_KEY: z.string(),
   // add here more variables as needed
 });
 
