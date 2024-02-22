@@ -102,7 +102,7 @@
     @apply text-sm text-muted-foreground;
   }
   code {
-    @apply px-6 py-3 rounded-md whitespace-nowrap overflow-x-auto bg-black text-white text-sm leading-6 max-w-full dark:bg-slate-800;
+    @apply px-3 py-1 rounded whitespace-nowrap overflow-x-auto bg-slate-800 text-white text-sm leading-6 max-w-full dark:bg-slate-700;
   }
   code[data-print=true] {
     @apply px-5 whitespace-normal overflow-hidden;

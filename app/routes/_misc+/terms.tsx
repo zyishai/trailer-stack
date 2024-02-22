@@ -1,7 +1,9 @@
-export default function TermsOfUsePage() {
+import Terms from "../../components/terms.mdx";
+
+export default function TermsOfServicePage() {
   return (
     <div className="h-full px-8 py-4">
-      <h1>Terms of Use</h1>
+      <Terms />
     </div>
   );
 }
