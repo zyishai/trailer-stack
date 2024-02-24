@@ -1,4 +1,4 @@
-import { hasPermission } from "../privileges";
+import { hasPermissionTo } from "../privileges";
 import type { CombinedObjectParams, Entity, Models } from "../types";
 import { AccessResponse } from "../access-response";
 
@@ -11,7 +11,7 @@ export function update(subject: Entity) {
       async with(
         params: CombinedObjectParams<E, "update">,
       ): Promise<AccessResponse> {
-        const permissionResponse = await hasPermission("update", entityName, {
+        const permissionResponse = await hasPermissionTo("update", entityName, {
           ...params,
           fields,
           subject,

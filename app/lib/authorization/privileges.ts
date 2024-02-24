@@ -24,7 +24,7 @@ export const defaultPrivileges = {
   delete: {},
 };
 
-export async function hasPermission(
+export async function hasPermissionTo(
   type: "read" | "create" | "update" | "delete",
   entityName: string,
   params: ParamsWithSubject,
