@@ -8,7 +8,7 @@ npx create-remix@latest --template zyishai/trailer-stack
 
 The Trailer Stack is a **quick and lightweight** Remix stack.
 It uses a combination of very minimal setup and optional add-ons that can be installed and configured during initialization.  
-This stack is heavily influenced by the [Epic Stack](https://github.com/epicweb-dev/epic-stack).
+This stack was influenced by the [Epic Stack](https://github.com/epicweb-dev/epic-stack).
 
 ## What's in the stack 🚀
 
